@@ -6,7 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
+	"time"
 
+	"github.com/Arinji2/vibeify-backend/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,7 +17,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var tasks []types.AddTaskType
+var (
+	taskInProgress    bool = false
+	mu                sync.Mutex
+	totalTimesChecked int = 0
+)
+
 func main() {
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
@@ -52,14 +63,27 @@ func main() {
 
 		var requestBody types.AddTaskType
 
-		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		err := decoder.Decode(&requestBody)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Invalid Input", http.StatusBadRequest)
 			return
 		}
 
+		fmt.Println(requestBody)
+
+		if os.Getenv("ENVIRONMENT") == "" {
+			token := spotify.GetSpotifyToken()
+			fmt.Println(token)
+		}
+
+		tasks = append(tasks, requestBody)
+
 		render.Status(r, 200)
 	})
+
+	go checkTasks()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Vibeify Backend: Health Check")
@@ -68,4 +92,34 @@ func main() {
 	})
 
 	http.ListenAndServe(":8080", r)
+
+}
+
+func checkTasks() {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if taskInProgress {
+		return
+	}
+	ticker := time.NewTicker(time.Millisecond * 10)
+	for range ticker.C {
+		if totalTimesChecked < 5 {
+			fmt.Println("Checking for new tasks")
+		} else if totalTimesChecked == 5 {
+			fmt.Println("Holding off logging for new tasks")
+
+		}
+
+		totalTimesChecked++
+		if len(tasks) > 0 {
+			fmt.Println("New task found")
+			totalTimesChecked = 0
+			selectedTask := tasks[0]
+			fmt.Println(selectedTask)
+			taskInProgress = true
+			tasks = tasks[1:]
+
+		}
+	}
 }
