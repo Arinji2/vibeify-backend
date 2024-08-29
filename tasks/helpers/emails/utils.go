@@ -1,7 +1,6 @@
 package email_helpers
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -15,8 +14,6 @@ func emailTemplateUtility(data any, emailName string, emailString string) string
 	}
 
 	finalEmail := &strings.Builder{}
-
-	fmt.Println(data)
 
 	err = tmpl.Execute(finalEmail, data)
 	if err != nil {

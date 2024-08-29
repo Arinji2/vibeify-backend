@@ -2,7 +2,6 @@ package email_helpers
 
 import (
 	_ "embed"
-	"fmt"
 	"time"
 )
 
@@ -21,6 +20,13 @@ func SendQueueAdditionEmail(isPremium bool, email string) {
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Addition Email", queueAdditionEmailTemplateString)
-	fmt.Println(emailString)
+	emailClient := NewEmailClient(
+		email,
+	)
+
+	emailClient.SendEmail(
+		"Your Convert Request Has Been Added to the Queue",
+		emailString,
+	)
 
 }

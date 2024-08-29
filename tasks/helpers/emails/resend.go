@@ -12,15 +12,14 @@ type EmailClientType struct {
 	SendParams *resend.SendEmailRequest
 }
 
-func EmailClient(to string, subject string) *EmailClientType {
+func NewEmailClient(to string) *EmailClientType {
 	godotenv.Load()
 	apiKey := os.Getenv("EMAIL_KEY")
 	emailClient := resend.NewClient(apiKey)
 
 	emailDetails := &resend.SendEmailRequest{
-		From:    "no-reply@mail.arinji.com",
-		To:      []string{to},
-		Subject: subject,
+		From: "no-reply@mail.arinji.com",
+		To:   []string{to},
 	}
 
 	returnData := EmailClientType{
@@ -35,7 +34,7 @@ func EmailClient(to string, subject string) *EmailClientType {
 func (e *EmailClientType) SendEmail(subject string, html string) {
 
 	e.SendParams.Subject = subject
-	e.SendParams.Text = html
+	e.SendParams.Html = html
 	_, err := e.Client.Emails.Send(e.SendParams)
 	if err != nil {
 		panic(err)

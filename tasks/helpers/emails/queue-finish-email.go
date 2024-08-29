@@ -2,7 +2,6 @@ package email_helpers
 
 import (
 	_ "embed"
-	"fmt"
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/types"
@@ -36,6 +35,13 @@ func SendQueueFinishEmail(isPrem bool, uses int, items []types.QueueFinishedEmai
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Finished Email", queueFinishEmailTemplateString)
-	fmt.Println(emailString)
+	emailClient := NewEmailClient(
+		email,
+	)
+
+	emailClient.SendEmail(
+		"Your Convert Request Has Completed",
+		emailString,
+	)
 
 }

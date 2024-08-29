@@ -2,7 +2,6 @@ package email_helpers
 
 import (
 	_ "embed"
-	"fmt"
 	"time"
 )
 
@@ -21,6 +20,13 @@ func SendQueueErrorEmail(errorMsg string, email string) {
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Error Email", queueErrorEmailTemplateString)
-	fmt.Println(emailString)
+	emailClient := NewEmailClient(
+		email,
+	)
+
+	emailClient.SendEmail(
+		"Your Convert Request Has Failed",
+		emailString,
+	)
 
 }
