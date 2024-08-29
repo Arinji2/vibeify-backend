@@ -44,7 +44,7 @@ func (c *ApiClient) doRequest(req *http.Request, headers map[string]string) (map
 	for key, val := range headers {
 		req.Header.Set(key, val)
 	}
-	fmt.Println(req.URL.String())
+
 	resp, err := c.Client.Do(req)
 
 	if err != nil {
