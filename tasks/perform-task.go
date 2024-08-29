@@ -19,4 +19,6 @@ func PerformTask(task types.AddTaskType) {
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
+
+	//email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
 }
