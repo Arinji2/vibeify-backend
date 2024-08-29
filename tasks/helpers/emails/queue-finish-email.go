@@ -3,6 +3,7 @@ package email_helpers
 import (
 	_ "embed"
 	"fmt"
+	"time"
 
 	"github.com/Arinji2/vibeify-backend/types"
 )
@@ -16,6 +17,7 @@ func SendQueueFinishEmail(isPrem bool, uses int, items []types.QueueFinishedEmai
 		Uses  int
 		Total int
 		Items []types.QueueFinishedEmailItems
+		Year  int
 	}
 
 	total := 0
@@ -30,6 +32,7 @@ func SendQueueFinishEmail(isPrem bool, uses int, items []types.QueueFinishedEmai
 		Uses:  uses,
 		Total: total,
 		Items: items,
+		Year:  time.Now().Year(),
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Finished Email", queueFinishEmailTemplateString)
