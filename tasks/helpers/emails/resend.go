@@ -1,6 +1,7 @@
 package email_helpers
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -39,4 +40,6 @@ func (e *EmailClientType) SendEmail(subject string, html string) {
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Printf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], e.SendParams.Subject)
 }
