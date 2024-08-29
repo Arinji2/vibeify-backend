@@ -15,6 +15,6 @@ func HandleError(err error, emailTo string) {
 	}
 	fmt.Println("Sending Email to ", emailTo)
 
-	email_helpers.SendQueueErrorEmail(emailTo, string(err.Error()))
+	email_helpers.SendQueueErrorEmail(string(err.Error()), emailTo)
 
 }
