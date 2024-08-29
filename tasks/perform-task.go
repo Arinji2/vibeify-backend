@@ -5,6 +5,7 @@ import (
 
 	"github.com/Arinji2/vibeify-backend/tasks/helpers"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
+	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
@@ -21,4 +22,6 @@ func PerformTask(task types.AddTaskType) {
 	}
 
 	//email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
+
+	spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
 }

@@ -1,4 +1,4 @@
-package spotify
+package spotify_helpers
 
 import (
 	"bytes"
@@ -28,6 +28,13 @@ var (
 	mu         sync.Mutex
 )
 
+func BustSpotifyTokenCache() {
+	mu.Lock()
+	defer mu.Unlock()
+	tokenCache = ""
+	expiryTime = time.Time{}
+}
+
 func GetSpotifyToken() string {
 	mu.Lock()
 	defer mu.Unlock()
@@ -44,8 +51,6 @@ func GetSpotifyToken() string {
 	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
 	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
 	refreshToken := os.Getenv("SPOTIFY_REFRESH_TOKEN")
-
-	fmt.Println(clientID, clientSecret, refreshToken)
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
@@ -75,7 +80,6 @@ func GetSpotifyToken() string {
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(resp.Body)
-	fmt.Println("Response:", buf.String())
 
 	tokenData := TokenDataStruct{}
 

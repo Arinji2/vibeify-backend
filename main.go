@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Arinji2/vibeify-backend/spotify"
 	"github.com/Arinji2/vibeify-backend/tasks"
+	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -96,7 +96,7 @@ func main() {
 		fmt.Println(requestBody)
 
 		if os.Getenv("ENVIRONMENT") == "" {
-			token := spotify.GetSpotifyToken()
+			token := spotify_helpers.GetSpotifyToken()
 			fmt.Println(token)
 		}
 
