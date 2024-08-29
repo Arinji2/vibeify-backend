@@ -20,7 +20,7 @@ func SendQueueAdditionEmail(isPremium bool, email string) {
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Addition Email", queueAdditionEmailTemplateString)
-	emailClient := NewEmailClient(
+	emailClient := newEmailClient(
 		email,
 	)
 

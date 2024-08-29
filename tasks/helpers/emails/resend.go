@@ -13,7 +13,7 @@ type EmailClientType struct {
 	SendParams *resend.SendEmailRequest
 }
 
-func NewEmailClient(to string) *EmailClientType {
+func newEmailClient(to string) *EmailClientType {
 	godotenv.Load()
 	apiKey := os.Getenv("EMAIL_KEY")
 	emailClient := resend.NewClient(apiKey)

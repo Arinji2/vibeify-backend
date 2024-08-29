@@ -35,7 +35,7 @@ func SendQueueFinishEmail(isPrem bool, uses int, items []types.QueueFinishedEmai
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Finished Email", queueFinishEmailTemplateString)
-	emailClient := NewEmailClient(
+	emailClient := newEmailClient(
 		email,
 	)
 

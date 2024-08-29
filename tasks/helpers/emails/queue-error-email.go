@@ -20,7 +20,7 @@ func SendQueueErrorEmail(errorMsg string, email string) {
 	}
 
 	emailString := emailTemplateUtility(emailData, "Queue Error Email", queueErrorEmailTemplateString)
-	emailClient := NewEmailClient(
+	emailClient := newEmailClient(
 		email,
 	)
 
