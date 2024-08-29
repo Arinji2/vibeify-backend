@@ -24,10 +24,20 @@ var (
 	totalTimesChecked int = 0
 )
 
+func SkipLoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		middleware.Logger(next).ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(SkipLoggingMiddleware)
 
 	err := godotenv.Load()
 	if err != nil {
@@ -86,7 +96,7 @@ func main() {
 	go checkTasks()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Vibeify Backend: Health Check")
+
 		w.Write([]byte("Vibeify Backend: Health Check"))
 		render.Status(r, 200)
 	})
