@@ -39,8 +39,7 @@ func NewApiClient(baseURL ...string) *ApiClient {
 	}
 }
 
-func (c *ApiClient) doRequest(req *http.Request, headers map[string]string) (map[string]interface{}, error) {
-
+func (c *ApiClient) doRequest(req *http.Request, headers map[string]string) (map[string]interface{}, int, error) {
 	req.Header.Set("Content-Type", "application/json")
 	for key, val := range headers {
 		req.Header.Set(key, val)
@@ -49,53 +48,58 @@ func (c *ApiClient) doRequest(req *http.Request, headers map[string]string) (map
 	resp, err := c.Client.Do(req)
 
 	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
+		return nil, 0, fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, resp.StatusCode, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	var result map[string]interface{}
 
 	if resp.StatusCode == http.StatusNoContent {
-		return result, nil
+		return result, resp.StatusCode, nil
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return nil, resp.StatusCode, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return result, nil
-
+	return result, resp.StatusCode, nil
 }
 
-func (c *ApiClient) SendRequestWithBody(method, path string, body interface{}, headers map[string]string) (map[string]interface{}, error) {
-
+func (c *ApiClient) SendRequestWithBody(method, path string, body interface{}, headers map[string]string) (result map[string]interface{}, status int, err error) {
 	address := fmt.Sprintf("%s%s", c.BaseURL, path)
-	jsonBody, err := json.Marshal(body)
 
+	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling json %w", err)
+		status = 500
+		err = fmt.Errorf("error marshalling json: %w", err)
+		return
 	}
 
 	req, err := http.NewRequest(method, address, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		status = 500
+		err = fmt.Errorf("error creating request: %w", err)
+		return
 	}
 
-	result, err := c.doRequest(req, headers)
+	req.Header.Set("Content-Type", "application/json")
+	for key, val := range headers {
+		req.Header.Set(key, val)
+	}
 
+	result, status, err = c.doRequest(req, headers)
 	if err != nil {
-		return nil, fmt.Errorf("error from request doer %w", err)
+		err = fmt.Errorf("error from request doer: %w", err)
+		return
 	}
 
-	return result, nil
-
+	return
 }
 
-func (c *ApiClient) SendRequestWithQuery(method, path string, query map[string]string, headers map[string]string) (map[string]interface{}, error) {
-
+func (c *ApiClient) SendRequestWithQuery(method, path string, query map[string]string, headers map[string]string) (result map[string]interface{}, status int, err error) {
 	queryParams := url.Values{}
 	for key, value := range query {
 		queryParams.Add(key, value)
@@ -103,20 +107,24 @@ func (c *ApiClient) SendRequestWithQuery(method, path string, query map[string]s
 
 	address, err := url.JoinPath(c.BaseURL, path)
 	if err != nil {
-		return nil, fmt.Errorf("error joining URL paths: %w", err)
+		status = 500
+		err = fmt.Errorf("error joining URL paths: %w", err)
+		return
 	}
 
 	fullURL := fmt.Sprintf("%s?%s", address, queryParams.Encode())
 	req, err := http.NewRequest(method, fullURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		status = 500
+		err = fmt.Errorf("error creating request: %w", err)
+		return
 	}
-	result, err := c.doRequest(req, headers)
 
+	result, status, err = c.doRequest(req, headers)
 	if err != nil {
-		return nil, fmt.Errorf("error from request doer %w", err)
+		err = fmt.Errorf("error from request doer: %w", err)
+		return
 	}
 
-	return result, nil
-
+	return
 }
