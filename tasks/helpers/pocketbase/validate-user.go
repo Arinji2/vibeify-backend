@@ -12,7 +12,7 @@ import (
 func ValidateUser(token string) (user *types.PocketbaseUser, err error) {
 
 	client := api.NewApiClient("https://db-listify.arinji.com")
-	res, err := client.SendRequestWithBody("POST", "/api/collections/users/auth-refresh", nil, map[string]string{
+	res, _, err := client.SendRequestWithBody("POST", "/api/collections/users/auth-refresh", nil, map[string]string{
 		"Authorization": token,
 	})
 

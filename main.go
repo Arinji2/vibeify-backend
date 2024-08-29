@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/spotify"
+	"github.com/Arinji2/vibeify-backend/tasks"
 	"github.com/Arinji2/vibeify-backend/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,7 +18,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var tasks []types.AddTaskType
+var tasksArr []types.AddTaskType
 var (
 	taskInProgress    bool = false
 	mu                sync.Mutex
@@ -40,6 +41,17 @@ func main() {
 	r.Use(SkipLoggingMiddleware)
 
 	err := godotenv.Load()
+
+	var sampleData = types.AddTaskType{
+		SpotifyURL: "https://open.spotify.com/playlist/6kuIGnkym1n4RRO1xTFAqc?si=a21fff7b42d947c4",
+		UserToken:  os.Getenv("PB_TEST_TOKEN"),
+		Genres: []string{
+			"Pop",
+			"Rock",
+		},
+	}
+
+	tasks.PerformTask(sampleData)
 	if err != nil {
 		isProduction := os.Getenv("ENVIRONMENT") == "PRODUCTION"
 		if !isProduction {
@@ -88,7 +100,7 @@ func main() {
 			fmt.Println(token)
 		}
 
-		tasks = append(tasks, requestBody)
+		tasksArr = append(tasksArr, requestBody)
 
 		render.Status(r, 200)
 	})
@@ -122,13 +134,13 @@ func checkTasks() {
 		}
 
 		totalTimesChecked++
-		if len(tasks) > 0 {
+		if len(tasksArr) > 0 {
 			fmt.Println("New task found")
 			totalTimesChecked = 0
-			selectedTask := tasks[0]
+			selectedTask := tasksArr[0]
 			fmt.Println(selectedTask)
 			taskInProgress = true
-			tasks = tasks[1:]
+			tasksArr = tasksArr[1:]
 
 		}
 	}

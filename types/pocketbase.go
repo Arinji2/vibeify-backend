@@ -19,3 +19,13 @@ type PocketbaseUserRecord struct {
 	Dicebear        string `json:"dicebear"`
 	Premium         bool   `json:"premium"`
 }
+
+type PocketbaseLimit struct {
+	CollectionId   string `json:"collectionId"`
+	CollectionName string `json:"collectionName"`
+	Created        string `json:"created"`
+	Id             string `json:"id"`
+	Updated        string `json:"updated"`
+	User           string `json:"user"`
+	Uses           int    `json:"uses"`
+}
