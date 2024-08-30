@@ -60,6 +60,14 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (err error) {
 		log.Fatalf("Error unmarshalling into struct: %v", err)
 	}
 
+	if Playlist.Tracks.Total > 200 && !user.Record.Premium {
+		err = errors.New("playlist is too large for free users")
+	}
+
+	if Playlist.Tracks.Total > 400 && user.Record.Premium {
+		err = errors.New("playlist is too large for premium users")
+	}
+
 	fmt.Println(Playlist.Tracks.Total, Playlist.Tracks.Limit, Playlist.Tracks.Offset)
 	return
 
