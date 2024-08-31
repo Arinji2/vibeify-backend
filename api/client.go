@@ -53,7 +53,7 @@ func (c *ApiClient) doRequest(req *http.Request, headers map[string]string) (map
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return nil, resp.StatusCode, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, resp.StatusCode, nil
 	}
 
 	var result map[string]interface{}

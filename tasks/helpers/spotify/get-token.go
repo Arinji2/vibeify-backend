@@ -23,12 +23,13 @@ type TokenDataStruct struct {
 }
 
 var (
+	mu         sync.Mutex
 	tokenCache string
 	expiryTime time.Time
-	mu         sync.Mutex
 )
 
 func BustSpotifyTokenCache() {
+
 	mu.Lock()
 	defer mu.Unlock()
 	tokenCache = ""

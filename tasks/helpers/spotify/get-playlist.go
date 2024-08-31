@@ -2,7 +2,6 @@ package spotify_helpers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -15,9 +14,10 @@ var (
 	retries int = 0
 )
 
-func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (err error) {
-	token := GetSpotifyToken()
+func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.SpotifyPlaylistItem, errorText string) {
 
+	token := GetSpotifyToken()
+	tracks = nil
 	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
 
 	client := api.NewApiClient("https://api.spotify.com/v1")
@@ -33,7 +33,7 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (err error) {
 	}
 
 	if status == 400 {
-		err = errors.New("playlist not found")
+		errorText = "Playlist not found"
 		return
 	}
 
@@ -44,31 +44,76 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (err error) {
 			fmt.Println("Retrying Spotify Authentication")
 			GetSpotifyPlaylist(url, user)
 		} else {
-			err = errors.New("spotify token expired")
-			return
+			fmt.Println("Spotify Token Expired")
+			errorText = "Server Error"
+
 		}
 	}
 
 	var Playlist types.SpotifyPlaylist
 	jsonData, err := json.Marshal(res)
 	if err != nil {
-		log.Fatalf("Error marshalling response: %v", err)
+		fmt.Printf("Error marshalling response: %v", err)
+		errorText = "Server Error"
+		return
 	}
 
 	err = json.Unmarshal(jsonData, &Playlist)
 	if err != nil {
-		log.Fatalf("Error unmarshalling into struct: %v", err)
+		fmt.Printf("Error unmarshalling into struct: %v", err)
+		errorText = "Server Error"
+		return
 	}
 
 	if Playlist.Tracks.Total > 200 && !user.Record.Premium {
-		err = errors.New("playlist is too large for free users")
+		errorText = "Playlist is too large. Maximum size is 200 tracks for free users"
 	}
 
 	if Playlist.Tracks.Total > 400 && user.Record.Premium {
-		err = errors.New("playlist is too large for premium users")
+		errorText = ("Playlist is too large. Maximum size is 400 tracks for premium users")
 	}
 
-	fmt.Println(Playlist.Tracks.Total, Playlist.Tracks.Limit, Playlist.Tracks.Offset)
+	for {
+		if (Playlist.Tracks.Offset + Playlist.Tracks.Limit) >= Playlist.Tracks.Total {
+			break
+		}
+		Playlist.Tracks.Offset += Playlist.Tracks.Limit
+		res, _, err = client.SendRequestWithQuery("GET", fmt.Sprintf("/playlists/%s/tracks", playlistID), map[string]string{
+
+			"fields": "items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),total,offset,limit",
+			"limit":  "100",
+			"offset": fmt.Sprintf("%d", Playlist.Tracks.Offset),
+		}, map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", token),
+		})
+
+		Items := []types.SpotifyPlaylistItem{}
+		if err != nil {
+			fmt.Printf("Error sending request: %v", err)
+			errorText = "Server Error"
+			return
+		}
+
+		jsonData, err := json.Marshal(res["items"])
+		if err != nil {
+			fmt.Printf("Error marshalling response: %v", err)
+			errorText = "Server Error"
+			return
+		}
+
+		err = json.Unmarshal(jsonData, &Items)
+		if err != nil {
+			fmt.Printf("Error unmarshalling into struct: %v", err)
+			errorText = "Server Error"
+			return
+		}
+
+		Playlist.Tracks.Items = append(Playlist.Tracks.Items, Items...)
+
+	}
+
+	tracks = Playlist.Tracks.Items
+
 	return
 
 }

@@ -2,27 +2,28 @@ package pocketbase_helpers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func ValidateUser(token string) (user *types.PocketbaseUser, err error) {
+func ValidateUser(token string) (user *types.PocketbaseUser, errorText string) {
 
-	client := api.NewApiClient("https://db-listify.arinji.com")
+	client := api.NewApiClient()
 	res, _, err := client.SendRequestWithBody("POST", "/api/collections/users/auth-refresh", nil, map[string]string{
 		"Authorization": token,
 	})
 
 	if err != nil {
-		return nil, errors.New("invalid user")
+		errorText = "Invalid User"
+		return nil, errorText
 	}
 	data, err := json.Marshal(res["record"])
 	if err != nil {
 		fmt.Println("Marshalling Error", err)
-		return nil, errors.New("server error")
+		errorText = "Server Error"
+		return nil, errorText
 
 	}
 
@@ -32,7 +33,8 @@ func ValidateUser(token string) (user *types.PocketbaseUser, err error) {
 
 	if err != nil {
 		fmt.Println("Error in parsing", err)
-		return nil, errors.New("server error")
+		errorText = "Server Error"
+		return nil, errorText
 	}
 
 	pocketbaseUser := types.PocketbaseUser{
@@ -40,6 +42,6 @@ func ValidateUser(token string) (user *types.PocketbaseUser, err error) {
 		Record: record,
 	}
 
-	return &pocketbaseUser, nil
+	return &pocketbaseUser, ""
 
 }

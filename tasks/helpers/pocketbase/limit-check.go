@@ -1,7 +1,6 @@
 package pocketbase_helpers
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func CheckLimit(user *types.PocketbaseUser) (used, total int, err error) {
+func CheckLimit(user *types.PocketbaseUser) (used, total int, errorText string) {
 	client := api.NewApiClient("https://db-listify.arinji.com")
 	total = 0
 	if user.Record.Premium {
@@ -59,11 +58,11 @@ func CheckLimit(user *types.PocketbaseUser) (used, total int, err error) {
 	if limit.Uses >= total {
 		used = total
 		if user.Record.Premium {
-			err = errors.New("maximum convert requests of 10 per week reached try again next week")
+			errorText = "Maximum convert requests of 10 per week reached try again next week"
 		} else {
-			err = errors.New("maximum convert requests of 5 per week reached please upgrade to premium to continue using the service or try again next week")
+			errorText = "Maximum convert requests of 5 per week reached please upgrade to premium to continue using the service or try again next week"
 		}
 	}
 
-	return used, total, err
+	return used, total, errorText
 }

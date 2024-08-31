@@ -6,7 +6,7 @@ import (
 	email_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/emails"
 )
 
-func HandleError(err error, emailTo string) {
+func HandleError(err string, emailTo string) {
 	fmt.Println("Handling Error")
 	defer panic(err)
 	if emailTo == "" {
@@ -15,6 +15,6 @@ func HandleError(err error, emailTo string) {
 	}
 	fmt.Println("Sending Email to ", emailTo)
 
-	email_helpers.SendQueueErrorEmail(string(err.Error()), emailTo)
+	email_helpers.SendQueueErrorEmail(err, emailTo)
 
 }

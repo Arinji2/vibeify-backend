@@ -43,11 +43,12 @@ func main() {
 	err := godotenv.Load()
 
 	var sampleData = types.AddTaskType{
-		SpotifyURL: "https://open.spotify.com/playlist/6kuIGnkym1n4RRO1xTFAqc?si=a21fff7b42d947c4",
+		SpotifyURL: "https://open.spotify.com/playlist/6efnlir2xmESQV1nTuXmWO?si=27a9ad8aed7b4ffa",
 		UserToken:  os.Getenv("PB_TEST_TOKEN"),
 		Genres: []string{
 			"Pop",
 			"Rock",
+			"Classical",
 		},
 	}
 

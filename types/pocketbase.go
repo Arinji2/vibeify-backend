@@ -29,3 +29,14 @@ type PocketbaseLimit struct {
 	User           string `json:"user"`
 	Uses           int    `json:"uses"`
 }
+
+type PocketbaseSongRecord struct {
+	ID             string   `json:"id"`
+	CollectionID   string   `json:"collectionId"`
+	CollectionName string   `json:"collectionName"`
+	Created        string   `json:"created"`
+	Updated        string   `json:"updated"`
+	Genres         []string `json:"genres"`
+	SpotifyID      string   `json:"spotifyID"`
+	Name           string   `json:"name"`
+}

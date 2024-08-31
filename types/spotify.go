@@ -24,6 +24,7 @@ type SpotifyTrack struct {
 	Name    string          `json:"name"`
 	Artists []SpotifyArtist `json:"artists"`
 	Album   SpotifyAlbum    `json:"album"`
+	URI     string          `json:"uri"`
 }
 
 type SpotifyArtist struct {
