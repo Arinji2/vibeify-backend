@@ -78,9 +78,14 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 			record := records[0]
 			hasMatched := false
 
+			for i, genre := range record.Genres {
+				record.Genres[i] = strings.ToLower(genre)
+
+			}
+
 			for _, genre := range genres {
 
-				genreMatch := slices.Contains(record.Genres, strings.ToLower(genre))
+				genreMatch := slices.Contains(record.Genres, genre)
 				if genreMatch {
 					hasMatched = true
 
