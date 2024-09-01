@@ -14,7 +14,7 @@ var (
 	retries int = 0
 )
 
-func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.SpotifyPlaylistItem, errorText string) {
+func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.SpotifyPlaylistItem, playlistName string, errorText string) {
 
 	token := GetSpotifyToken()
 	tracks = nil
@@ -113,6 +113,7 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.
 	}
 
 	tracks = Playlist.Tracks.Items
+	playlistName = Playlist.Name
 
 	return
 

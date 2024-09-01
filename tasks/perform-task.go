@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Arinji2/vibeify-backend/tasks/helpers"
-	ai_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/ai"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
 	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
@@ -24,8 +23,9 @@ func PerformTask(task types.AddTaskType) {
 	}
 
 	//email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
+	spotify_helpers.GetSpotifyToken()
 
-	tracks, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
+	tracks, playlistName, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
 	if err != "" {
 		helpers.HandleError(err, user.Record.Email)
 	}
@@ -41,17 +41,23 @@ func PerformTask(task types.AddTaskType) {
 
 	genreArrays["unknown"] = []types.GenreArray{}
 
-	err, updatedTracks := pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
+	err, _ = pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
 	if err != "" {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
-	fmt.Println(updatedTracks)
+	// err = ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
+	// if err != "" {
+	// 	helpers.HandleError(err, user.Record.Email)
+	// 	return
 
-	err = ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
+	// }
+
+	err, createdPlaylists := spotify_helpers.CreatePlaylists(playlistName, genreArrays)
 	if err != "" {
 		helpers.HandleError(err, user.Record.Email)
 		return
-
 	}
+	fmt.Println(createdPlaylists)
+
 }
