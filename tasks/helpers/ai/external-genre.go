@@ -82,8 +82,7 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 				if slices.Contains(genres, message) {
 					mu.Lock()
 					genreArrays[message] = append(genreArrays[message], types.GenreArray{
-						URI:  track.Track.URI,
-						Name: track.Track.Name,
+						URI: track.Track.URI,
 					})
 					mu.Unlock()
 					break
@@ -98,8 +97,7 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 			if retries == maxRetries {
 				mu.Lock()
 				genreArrays["unknown"] = append(genreArrays["unknown"], types.GenreArray{
-					URI:  track.Track.URI,
-					Name: track.Track.Name,
+					URI: track.Track.URI,
 				})
 				mu.Unlock()
 			}

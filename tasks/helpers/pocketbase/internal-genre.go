@@ -90,8 +90,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 					hasMatched = true
 
 					genreArrays[genre] = append(genreArrays[genre], types.GenreArray{
-						URI:  track.Track.URI,
-						Name: track.Track.Name,
+						URI: track.Track.URI,
 					})
 
 				}
