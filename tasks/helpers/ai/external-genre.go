@@ -5,6 +5,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
@@ -17,88 +19,95 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 
 	client := api.NewApiClient("https://ai.arinji.com")
 
-	retries := 0
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var pool = make(chan struct{}, 10)
 
 	for _, track := range remainingTracks {
+		wg.Add(1)
+		pool <- struct{}{}
+		go func(track types.SpotifyPlaylistItem) {
+			defer wg.Done()
+			defer func() {
+				<-pool
+			}()
 
-		artistString := ""
-		genreString := ""
-		for _, artist := range track.Track.Artists {
-			artistString = artistString + artist.Name + ", "
-		}
-		for _, genre := range genres {
-			genreString = genreString + genre + ", "
-		}
+			artistString := ""
+			genreString := ""
+			for _, artist := range track.Track.Artists {
+				artistString = artistString + artist.Name + ", "
+			}
+			for _, genre := range genres {
+				genreString = genreString + genre + ", "
+			}
 
-		prompt := fmt.Sprintf("Given the song name %s by artists %s Your objective is to guess the genre of the song, which is ONLY %s. Reply with ONLY the genre name, nothing else. Choose only one genre", track.Track.Name, artistString, genreString)
-		if len(updatedPrompt) > 0 {
-			prompt = prompt + updatedPrompt[0]
-		}
-		body := []map[string]string{
-			{
-				"role":    "user",
-				"content": prompt,
-			},
-		}
-		headers := map[string]string{
-			"Content-Type":  "application/json",
-			"Authorization": accessKey,
-		}
+			prompt := fmt.Sprintf("Given the song name %s by artists %s Your objective is to guess the genre of the song, which is ONLY %s. Reply with ONLY the genre name, nothing else. Choose only one genre", track.Track.Name, artistString, genreString)
+			if len(updatedPrompt) > 0 {
+				prompt = prompt + updatedPrompt[0]
+			}
 
-		res, status, err := client.SendRequestWithBody("POST", "/completions", body, headers)
-		if err != nil || status != 200 {
-			retries++
-			if retries < 3 {
-				fmt.Println("Retrying AI Request")
-				GetExternalGenre(remainingTracks, genres, genreArrays)
-			} else {
+			retries := 0
+			maxRetries := 3
+			for retries < maxRetries {
+				body := []map[string]string{
+					{
+						"role":    "user",
+						"content": prompt,
+					},
+				}
+				headers := map[string]string{
+					"Content-Type":  "application/json",
+					"Authorization": accessKey,
+				}
+
+				res, status, err := client.SendRequestWithBody("POST", "/completions", body, headers)
+				if err != nil || status != 200 {
+					retries++
+					if status == 500 {
+						//this is when the AI API is overloaded, we wait here
+						time.Sleep(time.Minute * 1)
+					}
+					continue
+				}
+
+				message, ok := res["message"].(string)
+				if !ok {
+					fmt.Println("Error converting message to string")
+					retries++
+					continue
+				}
+
+				message = strings.ToLower(message)
+
+				if slices.Contains(genres, message) {
+					mu.Lock()
+					genreArrays[message] = append(genreArrays[message], types.GenreArray{
+						URI:  track.Track.URI,
+						Name: track.Track.Name,
+					})
+					mu.Unlock()
+					break
+				} else {
+					updatedPromptString := fmt.Sprintf("The genre you guessed doesn't exist. DON'T GUESS THE GENRE %s", message)
+					prompt = prompt + updatedPromptString
+					retries++
+					fmt.Println("Retrying AI Request With Updated Prompt")
+				}
+			}
+
+			if retries == maxRetries {
+				mu.Lock()
 				genreArrays["unknown"] = append(genreArrays["unknown"], types.GenreArray{
 					URI:  track.Track.URI,
 					Name: track.Track.Name,
 				})
+				mu.Unlock()
 			}
 
-		}
-
-		message, ok := res["message"].(string)
-		if !ok {
-			fmt.Println("Error converting message to string")
-			genreArrays["unknown"] = append(genreArrays["unknown"], types.GenreArray{
-				URI:  track.Track.URI,
-				Name: track.Track.Name,
-			})
-
-		}
-
-		message = strings.ToLower(message)
-
-		if !slices.Contains(genres, message) {
-			updatedPromptString := fmt.Sprintf("The genre you guessed dosent exist. DONT GUESS THAT GENRE %s", message)
-			retries++
-			if retries < 3 {
-				fmt.Println("Retrying AI Request With Updated Prompt")
-				GetExternalGenre(remainingTracks, genres, genreArrays, updatedPromptString)
-			} else {
-				genreArrays["unknown"] = append(genreArrays["unknown"], types.GenreArray{
-					URI:  track.Track.URI,
-					Name: track.Track.Name,
-				})
-
-			}
-		}
-
-		for genre := range genreArrays {
-			if genre == message {
-				genreArrays[genre] = append(genreArrays[genre], types.GenreArray{
-					URI:  track.Track.URI,
-					Name: track.Track.Name,
-				})
-
-			}
-		}
-
+		}(track)
 	}
 
+	wg.Wait()
 	errorString = ""
 
 	return

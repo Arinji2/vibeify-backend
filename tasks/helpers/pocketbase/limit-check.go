@@ -8,9 +8,10 @@ import (
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func CheckLimit(user *types.PocketbaseUser) (used, total int, errorText string) {
+func CheckLimit(user *types.PocketbaseUser) (used int, usesID string, errorText string) {
 	client := api.NewApiClient("https://db-listify.arinji.com")
-	total = 0
+	total := 0
+	used = 0
 	if user.Record.Premium {
 		total = 10
 	} else {
@@ -24,20 +25,18 @@ func CheckLimit(user *types.PocketbaseUser) (used, total int, errorText string) 
 	})
 
 	if err != nil {
-		total = 0
-		used = 0
+
 		return
 	}
 
 	items, ok := res["items"].([]interface{})
 	if !ok {
-		total = 0
-		used = 0
+
 		return
 	}
 
 	if len(items) == 0 {
-		used = 0
+
 		return
 	}
 
@@ -48,6 +47,7 @@ func CheckLimit(user *types.PocketbaseUser) (used, total int, errorText string) 
 	}
 
 	uses, _ := strconv.Atoi(itemMap["uses"].(string))
+	usesID = itemMap["id"].(string)
 	limit := types.PocketbaseLimit{
 
 		Uses: uses,
@@ -64,5 +64,5 @@ func CheckLimit(user *types.PocketbaseUser) (used, total int, errorText string) 
 		}
 	}
 
-	return used, total, errorText
+	return used, usesID, errorText
 }

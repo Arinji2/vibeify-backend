@@ -50,7 +50,6 @@ func GetPocketbaseAdminToken() (token string, errorString string) {
 		return
 	}
 
-	fmt.Println(result)
 	token, ok := result["token"].(string)
 	if !ok || token == "" {
 		fmt.Println("Admin Token not found or not a string")

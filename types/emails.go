@@ -1,7 +1,7 @@
 package types
 
 type QueueFinishedEmailItems struct {
-	ID   string
+	ID   int
 	Name string
 	URL  string
 }
