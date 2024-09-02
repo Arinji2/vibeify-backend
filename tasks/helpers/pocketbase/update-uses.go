@@ -16,8 +16,9 @@ func UpdateUses(user *types.PocketbaseUser, used int, usesID string) (errorText 
 	}
 
 	client := api.NewApiClient()
-	_, _, error := client.SendRequestWithBody("POST", fmt.Sprintf("/api/collections/convertLimit/records/%s", usesID), map[string]string{
+	_, _, error := client.SendRequestWithBody("PATCH", fmt.Sprintf("/api/collections/convertLimit/records/%s", usesID), map[string]string{
 		"uses": fmt.Sprintf("%d", used+1),
+		"user": user.Record.ID,
 	}, map[string]string{
 		"Authorization": adminToken,
 	})

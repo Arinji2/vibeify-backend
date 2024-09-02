@@ -48,6 +48,7 @@ func CheckLimit(user *types.PocketbaseUser) (used int, usesID string, errorText 
 
 	uses, _ := strconv.Atoi(itemMap["uses"].(string))
 	usesID = itemMap["id"].(string)
+
 	limit := types.PocketbaseLimit{
 
 		Uses: uses,
