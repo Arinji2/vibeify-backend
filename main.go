@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/tasks"
+	indexing_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase/indexing"
 	"github.com/Arinji2/vibeify-backend/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -88,6 +89,7 @@ func main() {
 	})
 
 	go checkTasks()
+	go checkIndexing()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 
@@ -127,5 +129,13 @@ func checkTasks() {
 			taskInProgress = false
 
 		}
+	}
+}
+
+func checkIndexing() {
+	ticker := time.NewTicker(time.Second * 10)
+	for range ticker.C {
+
+		indexing_helpers.CheckIndexing()
 	}
 }
