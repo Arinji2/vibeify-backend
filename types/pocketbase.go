@@ -6,37 +6,28 @@ type PocketbaseUser struct {
 }
 
 type PocketbaseUserRecord struct {
-	ID              string `json:"id"`
-	CollectionID    string `json:"collectionId"`
-	CollectionName  string `json:"collectionName"`
-	Username        string `json:"username"`
-	Verified        bool   `json:"verified"`
-	EmailVisibility bool   `json:"emailVisibility"`
-	Email           string `json:"email"`
-	Created         string `json:"created"`
-	Updated         string `json:"updated"`
-	Name            string `json:"name"`
-	Dicebear        string `json:"dicebear"`
-	Premium         bool   `json:"premium"`
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Premium  bool   `json:"premium"`
 }
 
 type PocketbaseLimit struct {
-	CollectionId   string `json:"collectionId"`
-	CollectionName string `json:"collectionName"`
-	Created        string `json:"created"`
-	Id             string `json:"id"`
-	Updated        string `json:"updated"`
-	User           string `json:"user"`
-	Uses           int    `json:"uses"`
+	Id   string `json:"id"`
+	User string `json:"user"`
+	Uses int    `json:"uses"`
 }
 
 type PocketbaseSongRecord struct {
-	ID             string   `json:"id"`
-	CollectionID   string   `json:"collectionId"`
-	CollectionName string   `json:"collectionName"`
-	Created        string   `json:"created"`
-	Updated        string   `json:"updated"`
-	Genres         []string `json:"genres"`
-	SpotifyID      string   `json:"spotifyID"`
-	Name           string   `json:"name"`
+	ID        string   `json:"id"`
+	Genres    []string `json:"genres"`
+	SpotifyID string   `json:"spotifyID"`
+	Name      string   `json:"name"`
+}
+
+type PocketbaseSongIndexQueue struct {
+	Created   string `json:"created"`
+	Id        string `json:"id"`
+	SpotifyID string `json:"spotifyID"`
 }
