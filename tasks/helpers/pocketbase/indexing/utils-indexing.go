@@ -1,0 +1,151 @@
+package indexing_helpers
+
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/Arinji2/vibeify-backend/api"
+	ai_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/ai"
+	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
+	"github.com/Arinji2/vibeify-backend/types"
+)
+
+func sendSongToIndex(client *api.ApiClient, adminToken string, spotifyID string) error {
+	_, _, err := client.SendRequestWithBody("POST", "/api/collections/songsToIndex/records", map[string]string{
+		"spotifyID": spotifyID,
+	}, map[string]string{
+		"Authorization": adminToken,
+	})
+	return err
+}
+
+func getSongsToIndex(client *api.ApiClient, adminToken string) ([]types.PocketbaseSongIndexQueue, error) {
+	songsList, _, err := client.SendRequestWithQuery("GET", "/api/collections/songsToIndex/records", map[string]string{
+		"page":    "1",
+		"perPage": "10",
+		"sort":    "-created",
+	}, map[string]string{
+		"Authorization": adminToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	songsItems, ok := songsList["items"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error parsing songs list")
+	}
+
+	var songsToIndex []types.PocketbaseSongIndexQueue
+	jsonMarshalled, err := json.Marshal(songsItems)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(jsonMarshalled, &songsToIndex); err != nil {
+		return nil, err
+	}
+
+	return songsToIndex, nil
+}
+
+func fetchSpotifyTracks(songsToIndex []types.PocketbaseSongIndexQueue) ([]types.SpotifyTrack, error) {
+	spotifyClient := api.NewApiClient("https://api.spotify.com")
+	spotifyToken := spotify_helpers.GetSpotifyToken()
+	spotifyIDS := make([]string, len(songsToIndex))
+
+	for i, song := range songsToIndex {
+		spotifyIDS[i] = song.SpotifyID
+	}
+
+	spotifyIDStringified := strings.Join(spotifyIDS, ",")
+	res, _, err := spotifyClient.SendRequestWithQuery("GET", "/v1/tracks", map[string]string{
+		"ids": spotifyIDStringified,
+	}, map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", spotifyToken),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	tracks, ok := res["tracks"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error parsing tracks")
+	}
+
+	var spotifyTracks []types.SpotifyTrack
+	jsonMarshalled, err := json.Marshal(tracks)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(jsonMarshalled, &spotifyTracks); err != nil {
+		return nil, err
+	}
+
+	return spotifyTracks, nil
+}
+
+func indexSong(client *api.ApiClient, adminToken string, song types.SpotifyTrack) error {
+	songGenres := ai_helpers.IndexGenre(song)
+	if _, _, err := client.SendRequestWithBody("POST", "/api/collections/songs/records", map[string]any{
+		"spotifyID": song.ID,
+		"genres":    songGenres,
+	}, map[string]string{
+		"Authorization": adminToken,
+	}); err != nil {
+		return err
+	}
+
+	fmt.Println("Added song to index")
+
+	if err := deleteSongFromIndex(client, adminToken, song.ID); err != nil {
+		return err
+	}
+
+	fmt.Println("Deleted song from Index")
+	return nil
+}
+
+func deleteSongFromIndex(client *api.ApiClient, adminToken string, spotifyID string) error {
+	res, _, err := client.SendRequestWithQuery("GET", "/api/collections/songsToIndex/records", map[string]string{
+		"page":    "1",
+		"perPage": "1",
+		"sort":    "-created",
+		"filter":  fmt.Sprintf(`spotifyID="%s"`, spotifyID),
+	}, map[string]string{
+		"Authorization": adminToken,
+	})
+	if err != nil {
+		return err
+	}
+
+	songsItemsLocal, ok := res["items"].([]interface{})
+	if !ok {
+		return fmt.Errorf("error parsing local songs list")
+	}
+
+	jsonMarshalled, err := json.Marshal(songsItemsLocal[0])
+	if err != nil {
+		return err
+	}
+
+	var songToIndex types.PocketbaseSongIndexQueue
+	if err := json.Unmarshal(jsonMarshalled, &songToIndex); err != nil {
+		return err
+	}
+
+	_, status, err := client.SendRequestWithBody("DELETE", fmt.Sprintf("/api/collections/songsToIndex/records/%s", songToIndex.Id), nil, map[string]string{
+		"Authorization": adminToken,
+	})
+	if err != nil {
+		return err
+	}
+
+	if status != 204 {
+		return fmt.Errorf("error deleting song from index")
+	}
+
+	return nil
+}

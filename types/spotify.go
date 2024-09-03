@@ -36,3 +36,12 @@ type SpotifyAlbum struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+type SpotifyTrackForIndexing struct {
+	Track   SpotifyTrack
+	Artists struct {
+		Data []SpotifyArtist
+		IDS  []string
+	}
+	Genres []string
+}

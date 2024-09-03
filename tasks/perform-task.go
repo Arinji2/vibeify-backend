@@ -8,6 +8,7 @@ import (
 	ai_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/ai"
 	email_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/emails"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
+	indexing_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase/indexing"
 	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
 )
@@ -86,5 +87,7 @@ func PerformTask(task types.AddTaskType) {
 	}
 
 	email_helpers.SendQueueFinishEmail(user.Record.Premium, used+1, emailItems, user.Record.Email)
+
+	go indexing_helpers.QueueSongIndexing(updatedTracks)
 
 }
