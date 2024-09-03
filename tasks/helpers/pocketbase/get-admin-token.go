@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/api"
-	"github.com/joho/godotenv"
 )
 
 var (
@@ -27,7 +26,7 @@ func GetPocketbaseAdminToken() (token string, errorString string) {
 		errorString = ""
 		return
 	}
-	godotenv.Load()
+
 	identityEmail := os.Getenv("ADMIN_EMAIL")
 	password := os.Getenv("ADMIN_PASSWORD")
 

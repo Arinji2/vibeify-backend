@@ -10,11 +10,10 @@ import (
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
-	"github.com/joho/godotenv"
 )
 
 func createGenrePlaylist(genreKey string, playlistName string, headers map[string]string) (errorString string, createdPlaylist types.SpotifyPlaylist) {
-	godotenv.Load()
+
 	errorString = "Server Error"
 	userID := os.Getenv("SPOTIFY_ID")
 	dateString := time.Now().Format("2006-01-02")

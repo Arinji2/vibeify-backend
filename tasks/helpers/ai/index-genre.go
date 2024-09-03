@@ -9,7 +9,6 @@ import (
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
-	"github.com/joho/godotenv"
 )
 
 var GENRES = []string{
@@ -17,7 +16,6 @@ var GENRES = []string{
 }
 
 func IndexGenre(track types.SpotifyTrack) (trackGenres []string) {
-	godotenv.Load()
 
 	artistPromptString := strings.Builder{}
 

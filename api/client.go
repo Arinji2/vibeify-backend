@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type HTTPClient interface {
@@ -29,7 +27,7 @@ func NewApiClient(baseURL ...string) *ApiClient {
 	}
 
 	if url == "" {
-		godotenv.Load()
+
 		url = os.Getenv("PB_LINK")
 	}
 

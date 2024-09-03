@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 type TokenDataStruct struct {
@@ -48,7 +46,7 @@ func GetSpotifyToken() string {
 			expiryTime = time.Time{}
 		}
 	}
-	godotenv.Load()
+
 	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
 	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
 	refreshToken := os.Getenv("SPOTIFY_REFRESH_TOKEN")

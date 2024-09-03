@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/resend/resend-go/v2"
 )
 
@@ -14,7 +13,7 @@ type EmailClientType struct {
 }
 
 func newEmailClient(to string) *EmailClientType {
-	godotenv.Load()
+
 	apiKey := os.Getenv("EMAIL_KEY")
 	emailClient := resend.NewClient(apiKey)
 

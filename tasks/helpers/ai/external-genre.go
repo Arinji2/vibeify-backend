@@ -10,11 +10,10 @@ import (
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
-	"github.com/joho/godotenv"
 )
 
 func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays, updatedPrompt ...string) (errorString string) {
-	godotenv.Load()
+
 	accessKey := os.Getenv("ACCESS_KEY")
 
 	client := api.NewApiClient("https://ai.arinji.com")
