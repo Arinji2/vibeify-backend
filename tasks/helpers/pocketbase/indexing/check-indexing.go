@@ -48,7 +48,7 @@ func CheckIndexing() {
 		return
 	}
 
-	jsonFile, error := os.ReadFile("tasks/helpers/pocketbase/indexing/indexable-playlists.json")
+	jsonFile, error := os.ReadFile("/tasks/helpers/pocketbase/indexing/indexable-playlists.json")
 
 	if error != nil {
 		fmt.Println(error)
