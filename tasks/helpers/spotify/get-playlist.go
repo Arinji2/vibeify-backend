@@ -22,7 +22,6 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 	fmt.Println(strings.Split(url, "/"))
 	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
 
-	// Check if the playlist is already cached
 	if cachedData, found := playlistCache.Get(playlistID); found {
 		playlist := cachedData.(types.SpotifyPlaylist)
 		tracks = playlist.Tracks.Items
@@ -129,9 +128,14 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 		Playlist.Tracks.Items = append(Playlist.Tracks.Items, Items...)
 	}
 
+	for _, track := range Playlist.Tracks.Items {
+		if !track.Track.IsLocal {
+			tracks = append(tracks, track)
+		}
+	}
+
 	playlistCache.Set(playlistID, Playlist, time.Hour)
 
-	tracks = Playlist.Tracks.Items
 	playlistName = Playlist.Name
 
 	return

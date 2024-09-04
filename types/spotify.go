@@ -25,6 +25,7 @@ type SpotifyTrack struct {
 	Artists []SpotifyArtist `json:"artists"`
 	Album   SpotifyAlbum    `json:"album"`
 	URI     string          `json:"uri"`
+	IsLocal bool            `json:"is_local"`
 }
 
 type SpotifyArtist struct {

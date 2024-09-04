@@ -65,13 +65,11 @@ func CheckIndexing() {
 	}
 
 	isIndexing := IsIndexingSongs()
-	fmt.Println(isIndexing)
+
 	if isIndexing {
-		fmt.Println("Indexing is already in progress")
+
 		return
 	}
-
-	fmt.Println("INDEXING PLAYLISTS")
 
 	for _, playlist := range jsonData {
 
