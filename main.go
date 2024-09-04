@@ -155,6 +155,7 @@ func checkIndexing() {
 	for range ticker.C {
 
 		indexing_helpers.CheckIndexing()
+		indexing_helpers.CleanupIndexing()
 	}
 }
 
@@ -163,5 +164,6 @@ func checkPlaylistIndexing() {
 
 	for range ticker.C {
 		indexing_helpers.CheckPlaylistIndexing()
+		indexing_helpers.CleanupIndexing()
 	}
 }
