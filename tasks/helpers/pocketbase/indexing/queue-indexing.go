@@ -28,6 +28,10 @@ func QueueSongIndexing(tracks []types.SpotifyPlaylistItem, priorityIndex string)
 			defer wg.Done()
 			defer func() { <-pool }()
 
+			if track.Track.IsLocal {
+				return
+			}
+
 			if err := sendSongToIndex(client, adminToken, track.Track.ID, priorityIndex); err != nil {
 				fmt.Println(err)
 			}
