@@ -37,7 +37,8 @@ func (e *EmailClientType) SendEmail(subject string, html string) {
 	e.SendParams.Html = html
 	_, err := e.Client.Emails.Send(e.SendParams)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	fmt.Printf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], e.SendParams.Subject)

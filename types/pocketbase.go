@@ -24,7 +24,7 @@ type PocketbaseSongRecord struct {
 	Genres    []string `json:"genres"`
 	SpotifyID string   `json:"spotifyID"`
 	Name      string   `json:"name"`
-	TotalUses string   `json:"totalUses"`
+	TotalUses int      `json:"totalUses"`
 }
 
 type PocketbaseSongIndexQueue struct {

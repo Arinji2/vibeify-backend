@@ -178,6 +178,8 @@ func deleteSongFromIndex(client *api.ApiClient, adminToken string, spotifyID str
 		return err
 	}
 
+	fmt.Println(res)
+
 	songsItemsLocal, ok := res["items"].([]interface{})
 	if !ok {
 		return fmt.Errorf("error parsing local songs list")
