@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 type HTTPClient interface {
@@ -43,27 +44,49 @@ func (c *ApiClient) doRequest(req *http.Request, headers map[string]string) (map
 		req.Header.Set(key, val)
 	}
 
-	resp, err := c.Client.Do(req)
-
-	if err != nil {
-		return nil, 0, fmt.Errorf("error sending request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusCreated {
-		return nil, resp.StatusCode, nil
-	}
-
 	var result map[string]interface{}
+	var resp *http.Response
+	var err error
+	const maxRetries = 3
+	var retryDelay = 100 * time.Millisecond
 
-	if resp.StatusCode == http.StatusNoContent {
+	for i := 0; i < maxRetries; i++ {
+		resp, err = c.Client.Do(req)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error sending request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusTooManyRequests && c.BaseURL == "https://api.spotify.com" {
+			retryAfter := resp.Header.Get("Retry-After")
+			if retryAfter != "" {
+				delay, err := time.ParseDuration(retryAfter + "s")
+				if err != nil {
+					return nil, resp.StatusCode, fmt.Errorf("error parsing Retry-After header: %w", err)
+				}
+				time.Sleep(delay)
+			} else {
+				time.Sleep(retryDelay)
+			}
+			retryDelay *= 2 // Exponential backoff
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusCreated {
+			return nil, resp.StatusCode, nil
+		}
+
+		if resp.StatusCode == http.StatusNoContent {
+			return result, resp.StatusCode, nil
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return nil, resp.StatusCode, fmt.Errorf("error decoding response: %w", err)
+		}
+
 		return result, resp.StatusCode, nil
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("error decoding response: %w", err)
-	}
 
-	return result, resp.StatusCode, nil
+	return nil, http.StatusTooManyRequests, fmt.Errorf("maximum retry attempts reached")
 }
 
 func (c *ApiClient) SendRequestWithBody(method, path string, body interface{}, headers map[string]string) (result map[string]interface{}, status int, err error) {
