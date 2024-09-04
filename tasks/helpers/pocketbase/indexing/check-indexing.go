@@ -45,9 +45,12 @@ func CheckIndexing() {
 
 	if totalItems > 0 {
 		PerformSongIndexing()
-		return
+
 	}
 
+}
+
+func CheckPlaylistIndexing() {
 	jsonFile, error := os.ReadFile("/tasks/helpers/pocketbase/indexing/indexable-playlists.json")
 
 	if error != nil {

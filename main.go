@@ -90,6 +90,24 @@ func main() {
 
 	go checkTasks()
 	go checkIndexing()
+	go checkPlaylistIndexing()
+
+	r.Get("/index/playlists", func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query()["key"]
+
+		if len(key) != 0 {
+
+			if key[0] != os.Getenv("ACCESS_KEY") {
+				render.Status(r, 401)
+				return
+
+			}
+
+		}
+
+		go indexing_helpers.CheckPlaylistIndexing()
+		render.Status(r, 200)
+	})
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 
@@ -137,5 +155,13 @@ func checkIndexing() {
 	for range ticker.C {
 
 		indexing_helpers.CheckIndexing()
+	}
+}
+
+func checkPlaylistIndexing() {
+	ticker := time.NewTicker(time.Hour * 24)
+
+	for range ticker.C {
+		indexing_helpers.CheckPlaylistIndexing()
 	}
 }
