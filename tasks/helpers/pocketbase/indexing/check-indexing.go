@@ -1,11 +1,14 @@
 package indexing_helpers
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/Arinji2/vibeify-backend/api"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
+	"github.com/Arinji2/vibeify-backend/types"
 )
 
 var (
@@ -42,7 +45,44 @@ func CheckIndexing() {
 
 	if totalItems > 0 {
 		PerformSongIndexing()
+		return
 	}
 
-	//TODO Read a json file to get playlists to keep indexed
+	jsonFile, error := os.ReadFile("tasks/helpers/pocketbase/indexing/indexable-playlists.json")
+
+	if error != nil {
+		fmt.Println(error)
+		return
+	}
+
+	jsonData := []types.IndexablePlaylist{}
+	var pool = make(chan struct{}, 2)
+
+	error = json.Unmarshal(jsonFile, &jsonData)
+	if error != nil {
+		fmt.Println(error)
+		return
+	}
+
+	isIndexing := IsIndexingSongs()
+	fmt.Println(isIndexing)
+	if isIndexing {
+		fmt.Println("Indexing is already in progress")
+		return
+	}
+
+	fmt.Println("INDEXING PLAYLISTS")
+
+	for _, playlist := range jsonData {
+
+		pool <- struct{}{}
+		go func(playlist types.IndexablePlaylist) {
+			defer func() { <-pool }()
+
+			PerformPlaylistIndexing(playlist)
+
+		}(playlist)
+
+	}
+
 }

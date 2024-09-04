@@ -9,7 +9,7 @@ import (
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func QueueSongIndexing(tracks []types.SpotifyPlaylistItem) {
+func QueueSongIndexing(tracks []types.SpotifyPlaylistItem, priorityIndex string) {
 	adminToken, err := pocketbase_helpers.GetPocketbaseAdminToken()
 	if err != "" {
 		fmt.Println(err)
@@ -28,7 +28,7 @@ func QueueSongIndexing(tracks []types.SpotifyPlaylistItem) {
 			defer wg.Done()
 			defer func() { <-pool }()
 
-			if err := sendSongToIndex(client, adminToken, track.Track.ID); err != nil {
+			if err := sendSongToIndex(client, adminToken, track.Track.ID, priorityIndex); err != nil {
 				fmt.Println(err)
 			}
 		}(track)

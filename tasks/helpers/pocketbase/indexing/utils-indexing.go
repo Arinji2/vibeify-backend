@@ -11,9 +11,66 @@ import (
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func sendSongToIndex(client *api.ApiClient, adminToken string, spotifyID string) error {
+func checkIfIndexQueued(client *api.ApiClient, adminToken string, spotifyID string) (bool, error) {
+	res, _, err := client.SendRequestWithQuery("GET", "/api/collections/songsToIndex/records", map[string]string{
+		"page":    "1",
+		"perPage": "1",
+		"sort":    "-created,priority",
+		"filter":  fmt.Sprintf(`spotifyID="%s"`, spotifyID),
+	}, map[string]string{
+		"Authorization": adminToken,
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	totalItems, ok := res["totalItems"].(float64)
+	if !ok {
+		return false, fmt.Errorf("error parsing total items for songsIndex")
+	}
+
+	if totalItems > 0 {
+		return true, nil
+	}
+
+	res, _, err = client.SendRequestWithQuery("GET", "/api/collections/songs/records", map[string]string{
+		"page":    "1",
+		"perPage": "1",
+		"filter":  fmt.Sprintf(`spotifyID="%s"`, spotifyID),
+	}, map[string]string{
+		"Authorization": adminToken,
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	totalItems, ok = res["totalItems"].(float64)
+	if !ok {
+		fmt.Println(res)
+		return false, fmt.Errorf("error parsing total items for songs")
+	}
+
+	if totalItems > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func sendSongToIndex(client *api.ApiClient, adminToken string, spotifyID string, priority string) error {
+	exists, error := checkIfIndexQueued(client, adminToken, spotifyID)
+	if error != nil {
+		return error
+	}
+
+	if exists {
+		return nil
+	}
 	_, _, err := client.SendRequestWithBody("POST", "/api/collections/songsToIndex/records", map[string]string{
 		"spotifyID": spotifyID,
+		"priority":  priority,
 	}, map[string]string{
 		"Authorization": adminToken,
 	})
@@ -24,7 +81,7 @@ func getSongsToIndex(client *api.ApiClient, adminToken string) ([]types.Pocketba
 	songsList, _, err := client.SendRequestWithQuery("GET", "/api/collections/songsToIndex/records", map[string]string{
 		"page":    "1",
 		"perPage": "10",
-		"sort":    "-created",
+		"sort":    "-created,priority",
 	}, map[string]string{
 		"Authorization": adminToken,
 	})

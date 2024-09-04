@@ -88,6 +88,6 @@ func PerformTask(task types.AddTaskType) {
 
 	email_helpers.SendQueueFinishEmail(user.Record.Premium, used+1, emailItems, user.Record.Email)
 
-	go indexing_helpers.QueueSongIndexing(updatedTracks)
+	go indexing_helpers.QueueSongIndexing(updatedTracks, "1")
 
 }

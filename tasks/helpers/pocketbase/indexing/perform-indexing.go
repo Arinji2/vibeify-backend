@@ -3,13 +3,28 @@ package indexing_helpers
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/Arinji2/vibeify-backend/api"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
+	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
+var (
+	indexingWg      sync.WaitGroup
+	indexingRunning int32
+)
+
 func PerformSongIndexing() {
+	if !atomic.CompareAndSwapInt32(&indexingRunning, 0, 1) {
+		return
+	}
+	indexingWg.Add(1)
+	defer func() {
+		indexingWg.Done()
+		atomic.StoreInt32(&indexingRunning, 0)
+	}()
 	client := api.NewApiClient()
 	adminToken, err := pocketbase_helpers.GetPocketbaseAdminToken()
 	if err != "" {
@@ -19,13 +34,13 @@ func PerformSongIndexing() {
 
 	songsToIndex, error := getSongsToIndex(client, adminToken)
 	if error != nil {
-		fmt.Println(err)
+		fmt.Println(error)
 		return
 	}
 
 	spotifyTracks, error := fetchSpotifyTracks(songsToIndex)
 	if error != nil {
-		fmt.Println(err)
+		fmt.Println(error)
 		return
 	}
 
@@ -46,4 +61,17 @@ func PerformSongIndexing() {
 	}
 
 	wg.Wait()
+}
+
+func IsIndexingSongs() bool {
+	return atomic.LoadInt32(&indexingRunning) == 1
+}
+
+func PerformPlaylistIndexing(playlist types.IndexablePlaylist) {
+	fmt.Println(playlist.Link)
+
+	tracks, _, _ := spotify_helpers.GetSpotifyPlaylist(playlist.Link, nil, true)
+
+	go QueueSongIndexing(tracks, "0")
+
 }

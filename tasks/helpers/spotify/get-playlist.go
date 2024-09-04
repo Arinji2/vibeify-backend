@@ -5,24 +5,35 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	"github.com/Arinji2/vibeify-backend/cache"
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
 var (
-	retries int = 0
+	retries       int = 0
+	playlistCache     = cache.NewCache(500, 10*time.Minute)
 )
 
-func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.SpotifyPlaylistItem, playlistName string, errorText string) {
+func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...bool) (tracks []types.SpotifyPlaylistItem, playlistName string, errorText string) {
+	tracks = nil
+	fmt.Println(strings.Split(url, "/"))
+	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
+
+	// Check if the playlist is already cached
+	if cachedData, found := playlistCache.Get(playlistID); found {
+		playlist := cachedData.(types.SpotifyPlaylist)
+		tracks = playlist.Tracks.Items
+		playlistName = playlist.Name
+		return
+	}
 
 	token := GetSpotifyToken()
-	tracks = nil
-	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
 
 	client := api.NewApiClient("https://api.spotify.com/v1")
 	res, status, err := client.SendRequestWithQuery("GET", fmt.Sprintf("/playlists/%s", playlistID), map[string]string{
-
 		"fields": "id,name,description,owner(display_name,id),tracks.items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),tracks.total,tracks.offset,tracks.limit",
 	}, map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", token),
@@ -42,11 +53,11 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.
 		retries++
 		if retries < 3 {
 			fmt.Println("Retrying Spotify Authentication")
-			GetSpotifyPlaylist(url, user)
+			return GetSpotifyPlaylist(url, user)
 		} else {
 			fmt.Println("Spotify Token Expired")
 			errorText = "Server Error"
-
+			return
 		}
 	}
 
@@ -65,12 +76,20 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.
 		return
 	}
 
-	if Playlist.Tracks.Total > 200 && !user.Record.Premium {
-		errorText = "Playlist is too large. Maximum size is 200 tracks for free users"
+	isIndexing := false
+	if len(indexingFlag) > 0 {
+		isIndexing = indexingFlag[0]
 	}
+	if !isIndexing {
+		if Playlist.Tracks.Total > 200 && !user.Record.Premium {
+			errorText = "Playlist is too large. Maximum size is 200 tracks for free users"
+			return
+		}
 
-	if Playlist.Tracks.Total > 400 && user.Record.Premium {
-		errorText = ("Playlist is too large. Maximum size is 400 tracks for premium users")
+		if Playlist.Tracks.Total > 400 && user.Record.Premium {
+			errorText = "Playlist is too large. Maximum size is 400 tracks for premium users"
+			return
+		}
 	}
 
 	for {
@@ -79,7 +98,6 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.
 		}
 		Playlist.Tracks.Offset += Playlist.Tracks.Limit
 		res, _, err = client.SendRequestWithQuery("GET", fmt.Sprintf("/playlists/%s/tracks", playlistID), map[string]string{
-
 			"fields": "items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),total,offset,limit",
 			"limit":  "100",
 			"offset": fmt.Sprintf("%d", Playlist.Tracks.Offset),
@@ -109,12 +127,12 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser) (tracks []types.
 		}
 
 		Playlist.Tracks.Items = append(Playlist.Tracks.Items, Items...)
-
 	}
+
+	playlistCache.Set(playlistID, Playlist, time.Hour)
 
 	tracks = Playlist.Tracks.Items
 	playlistName = Playlist.Name
 
 	return
-
 }
