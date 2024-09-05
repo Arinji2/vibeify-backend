@@ -15,21 +15,20 @@ import (
 
 func PerformTask(task types.AddTaskType) {
 	user, err := pocketbase_helpers.ValidateUser(task.UserToken)
-	if err != "" {
+	if err != nil {
 		helpers.HandleError(err, "")
 	}
 
 	used, usesID, err := pocketbase_helpers.CheckLimit(user)
 
-	if err != "" {
+	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
 	email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
-	spotify_helpers.GetSpotifyToken()
 
 	tracks, playlistName, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
-	if err != "" {
+	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
@@ -44,34 +43,26 @@ func PerformTask(task types.AddTaskType) {
 
 	genreArrays["unknown"] = []types.GenreArray{}
 
-	err, updatedTracks := pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
-	if err != "" {
+	updatedTracks, err := pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
+	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
-	err = ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
-	if err != "" {
-		helpers.HandleError(err, user.Record.Email)
-		return
+	ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
 
-	}
-
-	err, createdPlaylists := spotify_helpers.CreatePlaylists(playlistName, genreArrays)
-	if err != "" {
+	createdPlaylists, err := spotify_helpers.CreatePlaylists(playlistName, genreArrays)
+	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
-		return
 	}
 
 	err = pocketbase_helpers.UpdateUses(user, used, usesID)
-	if err != "" {
+	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
-		return
 	}
 
 	err = pocketbase_helpers.RecordPlaylistForDeletion(user, createdPlaylists)
-	if err != "" {
+	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
-		return
 	}
 
 	emailItems := []types.QueueFinishedEmailItems{}
