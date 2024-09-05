@@ -2,9 +2,11 @@ package pocketbase_helpers
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	"github.com/Arinji2/vibeify-backend/constants"
 	"github.com/Arinji2/vibeify-backend/types"
 	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
@@ -14,9 +16,9 @@ func CheckLimit(user *types.PocketbaseUser) (used int, usesID string, err error)
 	total := 0
 	used = 0
 	if user.Record.Premium {
-		total = 10
+		total = constants.MAX_PAID_CONVERT_LIMIT
 	} else {
-		total = 5
+		total = constants.MAX_FREE_CONVERT_LIMIT
 	}
 	res, _, err := client.SendRequestWithQuery("GET", "/api/collections/convertLimit/records", map[string]string{
 		"page":    "1",
@@ -60,9 +62,9 @@ func CheckLimit(user *types.PocketbaseUser) (used int, usesID string, err error)
 	if limit.Uses >= total {
 
 		if user.Record.Premium {
-			return uses, usesID, user_errors.NewUserError("Maximum convert requests of 10 per week reached please upgrade to premium to continue using the service or try again next week", errors.New("max paid limit reached"))
+			return uses, usesID, user_errors.NewUserError(fmt.Sprintf("Maximum convert requests of %d per week reached please try again next week", constants.MAX_PAID_CONVERT_LIMIT), errors.New("max paid limit reached"))
 		} else {
-			return uses, usesID, user_errors.NewUserError("Maximum convert requests of 5 per week reached please upgrade to premium to continue using the service or try again next week", errors.New("max free limit reached"))
+			return uses, usesID, user_errors.NewUserError(fmt.Sprintf("Maximum convert requests of %d per week reached please upgrade to premium to continue using the service or try again next week", constants.MAX_FREE_CONVERT_LIMIT), errors.New("max free limit reached"))
 		}
 	}
 

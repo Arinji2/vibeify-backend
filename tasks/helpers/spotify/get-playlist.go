@@ -2,14 +2,16 @@ package spotify_helpers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/cache"
+	"github.com/Arinji2/vibeify-backend/constants"
 	"github.com/Arinji2/vibeify-backend/types"
+	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
 
 var (
@@ -17,7 +19,7 @@ var (
 	playlistCache     = cache.NewCache(500, 10*time.Minute)
 )
 
-func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...bool) (tracks []types.SpotifyPlaylistItem, playlistName string, errorText string) {
+func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...bool) (tracks []types.SpotifyPlaylistItem, playlistName string, err error) {
 	tracks = nil
 	fmt.Println(strings.Split(url, "/"))
 	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
@@ -39,12 +41,12 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 	})
 
 	if err != nil {
-		log.Fatalf("Error sending request: %v", err)
+		return nil, "", user_errors.NewUserError("", fmt.Errorf("error sending request: %v", err))
 	}
 
 	if status == 400 {
-		errorText = "Playlist not found"
-		return
+
+		return nil, "", user_errors.NewUserError("Playlist not found or Playlist is private", err)
 	}
 
 	if status == 401 {
@@ -54,25 +56,21 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 			fmt.Println("Retrying Spotify Authentication")
 			return GetSpotifyPlaylist(url, user)
 		} else {
-			fmt.Println("Spotify Token Expired")
-			errorText = "Server Error"
-			return
+
+			return nil, "", user_errors.NewUserError("", errors.New("spotify token expired"))
 		}
 	}
 
 	var Playlist types.SpotifyPlaylist
 	jsonData, err := json.Marshal(res)
 	if err != nil {
-		fmt.Printf("Error marshalling response: %v", err)
-		errorText = "Server Error"
-		return
+
+		return nil, "", user_errors.NewUserError("", (fmt.Errorf("error marshalling response: %v", err)))
 	}
 
 	err = json.Unmarshal(jsonData, &Playlist)
 	if err != nil {
-		fmt.Printf("Error unmarshalling into struct: %v", err)
-		errorText = "Server Error"
-		return
+		return nil, "", user_errors.NewUserError("", fmt.Errorf("error unmarshalling into struct: %v", err))
 	}
 
 	isIndexing := false
@@ -80,14 +78,12 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 		isIndexing = indexingFlag[0]
 	}
 	if !isIndexing {
-		if Playlist.Tracks.Total > 200 && !user.Record.Premium {
-			errorText = "Playlist is too large. Maximum size is 200 tracks for free users"
-			return
+		if Playlist.Tracks.Total > constants.MAX_FREE_PLAYLIST_SIZE && !user.Record.Premium {
+			return nil, "", user_errors.NewUserError(fmt.Sprintf("Playlist is too large. Maximum size is %d tracks for free users", constants.MAX_FREE_PLAYLIST_SIZE), errors.New("playlist-exceeds-free-limit"))
 		}
 
-		if Playlist.Tracks.Total > 400 && user.Record.Premium {
-			errorText = "Playlist is too large. Maximum size is 400 tracks for premium users"
-			return
+		if Playlist.Tracks.Total > constants.MAX_PAID_PLAYLIST_SIZE && user.Record.Premium {
+			return nil, "", user_errors.NewUserError(fmt.Sprintf("Playlist is too large. Maximum size is %d tracks for premium users", constants.MAX_PAID_PLAYLIST_SIZE), errors.New("playlist-exceeds-paid-limit"))
 		}
 	}
 
@@ -106,23 +102,17 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 
 		Items := []types.SpotifyPlaylistItem{}
 		if err != nil {
-			fmt.Printf("Error sending request: %v", err)
-			errorText = "Server Error"
-			return
+			return nil, "", user_errors.NewUserError("", fmt.Errorf("error sending request: %v", err))
 		}
 
 		jsonData, err := json.Marshal(res["items"])
 		if err != nil {
-			fmt.Printf("Error marshalling response: %v", err)
-			errorText = "Server Error"
-			return
+			return nil, "", user_errors.NewUserError("", fmt.Errorf("error marshalling response: %v", err))
 		}
 
 		err = json.Unmarshal(jsonData, &Items)
 		if err != nil {
-			fmt.Printf("Error unmarshalling into struct: %v", err)
-			errorText = "Server Error"
-			return
+			return nil, "", user_errors.NewUserError("", fmt.Errorf("error unmarshalling into struct: %v", err))
 		}
 
 		Playlist.Tracks.Items = append(Playlist.Tracks.Items, Items...)
@@ -138,5 +128,5 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 
 	playlistName = Playlist.Name
 
-	return
+	return tracks, playlistName, nil
 }
