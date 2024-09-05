@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gookit/slog"
-
+	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	"github.com/Arinji2/vibeify-backend/tasks/helpers"
 	ai_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/ai"
 	email_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/emails"
@@ -16,26 +15,26 @@ import (
 )
 
 func PerformTask(task types.AddTaskType) {
-	slog.Debug("Performing Task")
-	defer slog.Debug("Finished Performing Task")
+	custom_log.Logger.Debug("Performing Task")
+	defer custom_log.Logger.Debug("Finished Performing Task")
 
-	slog.Debug("Validating User")
+	custom_log.Logger.Debug("Validating User")
 	user, err := pocketbase_helpers.ValidateUser(task.UserToken)
 	if err != nil {
 		helpers.HandleError(err, "")
 	}
 
-	slog.Debug("Checking Limit")
+	custom_log.Logger.Debug("Checking Limit")
 	used, usesID, err := pocketbase_helpers.CheckLimit(user)
 
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
-	slog.Debug("Sending Addition Email")
+	custom_log.Logger.Debug("Sending Addition Email")
 	email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
 
-	slog.Debug("Getting Spotify Playlist")
+	custom_log.Logger.Debug("Getting Spotify Playlist")
 	tracks, playlistName, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
@@ -43,28 +42,28 @@ func PerformTask(task types.AddTaskType) {
 
 	genreArrays := setupArrays(task)
 
-	slog.Debug("Getting Internal Genre")
+	custom_log.Logger.Debug("Getting Internal Genre")
 	updatedTracks, err := pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
-	slog.Debug("Getting External Genre")
+	custom_log.Logger.Debug("Getting External Genre")
 	ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
 
-	slog.Debug("Creating Playlists")
+	custom_log.Logger.Debug("Creating Playlists")
 	createdPlaylists, err := spotify_helpers.CreatePlaylists(playlistName, genreArrays)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
-	slog.Debug("Updating Uses")
+	custom_log.Logger.Debug("Updating Uses")
 	err = pocketbase_helpers.UpdateUses(user, used, usesID)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
-	slog.Debug("Recording Deletion")
+	custom_log.Logger.Debug("Recording Deletion")
 	err = pocketbase_helpers.RecordPlaylistForDeletion(user, createdPlaylists)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
@@ -72,10 +71,10 @@ func PerformTask(task types.AddTaskType) {
 
 	emailItems := getEmailItems(createdPlaylists)
 
-	slog.Debug("Sending Finish Email")
+	custom_log.Logger.Debug("Sending Finish Email")
 	email_helpers.SendQueueFinishEmail(user.Record.Premium, used+1, emailItems, user.Record.Email)
 
-	slog.Debug("Indexing Songs")
+	custom_log.Logger.Debug("Indexing Songs")
 	go indexing_helpers.QueueSongIndexing(updatedTracks, "1")
 
 }

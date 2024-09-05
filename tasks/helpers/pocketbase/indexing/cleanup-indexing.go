@@ -5,10 +5,9 @@ import (
 	"math"
 	"sync"
 
-	"github.com/gookit/slog"
-
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/constants"
+	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
 )
 
@@ -64,7 +63,7 @@ func CleanupIndexing() {
 	pool := make(chan struct{}, 5)
 	cleanupWg := sync.WaitGroup{}
 
-	slog.Debug("Extra Songs Found, Purging.")
+	custom_log.Logger.Debug("Extra Songs Found, Purging.")
 
 	for _, item := range items {
 		cleanupWg.Add(1)

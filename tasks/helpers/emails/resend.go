@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gookit/slog"
+	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	"github.com/resend/resend-go/v2"
 )
 
@@ -42,5 +42,5 @@ func (e *EmailClientType) SendEmail(subject, html, readableSubject string) {
 		return
 	}
 
-	slog.Notice(fmt.Sprintf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], readableSubject))
+	custom_log.Logger.Notice(fmt.Sprintf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], readableSubject))
 }
