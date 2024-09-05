@@ -14,6 +14,11 @@ import (
 )
 
 func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays) (updatedTracks []types.SpotifyPlaylistItem, err error) {
+	localGenreArrays := make(map[string][]types.GenreArray)
+
+	for key, value := range genreArrays {
+		localGenreArrays[key] = value
+	}
 	wg := sync.WaitGroup{}
 	adminToken := GetPocketbaseAdminToken()
 
@@ -90,7 +95,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 				if genreMatch {
 					hasMatched = true
 
-					genreArrays[genre] = append(genreArrays[genre], types.GenreArray{
+					localGenreArrays[genre] = append(localGenreArrays[genre], types.GenreArray{
 						URI: track.Track.URI,
 					})
 
@@ -125,6 +130,10 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 	if finalError != nil {
 		return nil, user_errors.NewUserError("", finalError)
+	}
+
+	for key, value := range localGenreArrays {
+		genreArrays[key] = value
 	}
 
 	return updatedTracks, nil
