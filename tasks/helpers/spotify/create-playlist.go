@@ -1,15 +1,16 @@
 package spotify_helpers
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/Arinji2/vibeify-backend/types"
+	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
 
-func CreatePlaylists(playlistName string, genreArrays types.GenreArrays) (errorString string, createdPlaylists []types.SpotifyPlaylist) {
+func CreatePlaylists(playlistName string, genreArrays types.GenreArrays) (createdPlaylists []types.SpotifyPlaylist, err error) {
 
-	errorString = "Server Error"
 	accessToken := GetSpotifyToken()
 
 	spotifyHeaders := map[string]string{
@@ -48,11 +49,9 @@ func CreatePlaylists(playlistName string, genreArrays types.GenreArrays) (errorS
 	wg.Wait()
 
 	if len(createdPlaylists) == 0 {
-		errorString = "No playlists created"
-		return
-	}
+		return nil, user_errors.NewUserError("No Playlists Created. This is likely due to our algorithm having issues with your songs, try with a different playlist.", errors.New("no-playlists-created"))
 
-	errorString = ""
+	}
 
 	return
 }
