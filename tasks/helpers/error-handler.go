@@ -4,17 +4,25 @@ import (
 	"fmt"
 
 	email_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/emails"
+	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
 
-func HandleError(err string, emailTo string) {
-	fmt.Println("Handling Error")
-	defer panic(err)
-	if emailTo == "" {
-		fmt.Println("No Email to Send To")
-		return
-	}
-	fmt.Println("Sending Email to ", emailTo)
+func HandleError(err error, emailTo string) {
 
-	email_helpers.SendQueueErrorEmail(err, emailTo)
+	userError, ok := err.(user_errors.UserError)
+	if ok {
+		readableError := userError.ReadableError()
+		if emailTo != "" {
+			fmt.Println("Sending Email to ", emailTo)
+
+			email_helpers.SendQueueErrorEmail(readableError, emailTo)
+			panic(err)
+
+		}
+		fmt.Println("ERROR IN TASK")
+	}
+
+	fmt.Println(err)
+	panic(err)
 
 }
