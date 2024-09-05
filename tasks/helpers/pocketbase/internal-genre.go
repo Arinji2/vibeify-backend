@@ -106,6 +106,8 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 			if !hasMatched {
 				updatedTracks = append(updatedTracks, track)
 
+			} else {
+				go UpdateUses(record.ID, record.TotalUses)
 			}
 
 		}(track, genres)
