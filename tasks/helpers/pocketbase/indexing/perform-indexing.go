@@ -26,11 +26,7 @@ func PerformSongIndexing() {
 		atomic.StoreInt32(&indexingRunning, 0)
 	}()
 	client := api.NewApiClient()
-	adminToken, err := pocketbase_helpers.GetPocketbaseAdminToken()
-	if err != "" {
-		fmt.Println(err)
-		return
-	}
+	adminToken := pocketbase_helpers.GetPocketbaseAdminToken()
 
 	songsToIndex, error := getSongsToIndex(client, adminToken)
 	if error != nil {
