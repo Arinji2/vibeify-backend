@@ -19,19 +19,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var tasksArr []types.AddTaskType
-var (
-	taskInProgress bool = false
+type TaskManager struct {
+	tasks          []types.AddTaskType
+	taskInProgress bool
 	mu             sync.Mutex
-)
+}
 
 func main() {
-
 	r := chi.NewRouter()
 	r.Use(SkipLoggingMiddleware)
 
 	err := godotenv.Load()
-
 	if err != nil {
 		isProduction := os.Getenv("ENVIRONMENT") == "PRODUCTION"
 		if !isProduction {
@@ -43,92 +41,108 @@ func main() {
 		custom_log.Logger.Warn("Using Development Environment")
 	}
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Vibeify Backend: Request Received")
-		defer w.Write([]byte("Vibeify Backend: Request Received"))
-		key := r.URL.Query()["key"]
+	taskManager := &TaskManager{}
+	go taskManager.startTaskWorker()
+	go startIndexingJobs()
 
-		if len(key) != 0 {
-
-			if key[0] != os.Getenv("ACCESS_KEY") {
-				render.Status(r, 401)
-				return
-
-			}
-
-		}
-
-		render.Status(r, 200)
-	})
-
-	r.Post("/addTask", func(w http.ResponseWriter, r *http.Request) {
-
-		var requestBody types.AddTaskType
-
-		decoder := json.NewDecoder(r.Body)
-		decoder.DisallowUnknownFields()
-		err := decoder.Decode(&requestBody)
-		if err != nil {
-			http.Error(w, "Invalid Input", http.StatusBadRequest)
-			return
-		}
-
-		tasksArr = append(tasksArr, requestBody)
-
-		render.Status(r, 200)
-	})
-
-	go checkTasks()
-	go checkIndexing()
-	go checkPlaylistIndexing()
-
-	r.Get("/index/playlists", func(w http.ResponseWriter, r *http.Request) {
-		key := r.URL.Query()["key"]
-
-		if len(key) != 0 {
-
-			if key[0] != os.Getenv("ACCESS_KEY") {
-				render.Status(r, 401)
-				return
-
-			}
-
-		}
-
-		go indexing_helpers.CheckPlaylistIndexing()
-		render.Status(r, 200)
-	})
-
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-
-		w.Write([]byte("Vibeify Backend: Health Check"))
-		render.Status(r, 200)
-	})
+	r.Get("/", healthHandler)
+	r.Post("/addTask", taskManager.addTaskHandler)
+	r.Get("/index/playlists", playlistIndexingHandler)
+	r.Get("/health", healthCheckHandler)
 
 	http.ListenAndServe(":8080", r)
-
 }
 
-func checkTasks() {
-	mu.Lock()
-	defer mu.Unlock()
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Vibeify Backend: Request Received")
+	w.Write([]byte("Vibeify Backend: Request Received"))
+	key := r.URL.Query().Get("key")
 
-	if taskInProgress {
+	if key != "" && key != os.Getenv("ACCESS_KEY") {
+		render.Status(r, http.StatusUnauthorized)
 		return
 	}
-	ticker := time.NewTicker(time.Millisecond * 10)
-	custom_log.Logger.Info("Cron Job For Task Check Started")
-	for range ticker.C {
-		if len(tasksArr) > 0 {
-			selectedTask := tasksArr[0]
-			custom_log.Logger.Info(fmt.Sprintf("New task found. Tasks Remaining: %v", len(tasksArr)))
-			taskInProgress = true
-			tasksArr = tasksArr[1:]
-			tasks.PerformTask(selectedTask)
-			taskInProgress = false
 
-		}
+	render.Status(r, http.StatusOK)
+}
+
+func (tm *TaskManager) addTaskHandler(w http.ResponseWriter, r *http.Request) {
+	var requestBody types.AddTaskType
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&requestBody); err != nil {
+		http.Error(w, "Invalid Input", http.StatusBadRequest)
+		return
 	}
+
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+	tm.tasks = append(tm.tasks, requestBody)
+
+	render.Status(r, http.StatusOK)
+}
+
+func playlistIndexingHandler(w http.ResponseWriter, r *http.Request) {
+	key := r.URL.Query().Get("key")
+
+	if key != "" && key != os.Getenv("ACCESS_KEY") {
+		render.Status(r, http.StatusUnauthorized)
+		return
+	}
+
+	go indexing_helpers.CheckPlaylistIndexing()
+	render.Status(r, http.StatusOK)
+}
+
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Vibeify Backend: Health Check"))
+	render.Status(r, http.StatusOK)
+}
+
+func (tm *TaskManager) startTaskWorker() {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	custom_log.Logger.Info("Cron Job For Task Check Started")
+
+	for range ticker.C {
+		tm.mu.Lock()
+		if tm.taskInProgress || len(tm.tasks) == 0 {
+			tm.mu.Unlock()
+			continue
+		}
+
+		selectedTask := tm.tasks[0]
+		tm.tasks = tm.tasks[1:]
+		tm.taskInProgress = true
+		tm.mu.Unlock()
+
+		custom_log.Logger.Info(fmt.Sprintf("New task found. Tasks Remaining: %v", len(tm.tasks)))
+		tasks.PerformTask(selectedTask)
+
+		tm.mu.Lock()
+		tm.taskInProgress = false
+		tm.mu.Unlock()
+	}
+}
+
+func startIndexingJobs() {
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		custom_log.Logger.Info("Cron Job For Priority Indexing Started")
+		for range ticker.C {
+			indexing_helpers.CheckIndexing()
+			indexing_helpers.CleanupIndexing()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		custom_log.Logger.Info("Cron Job For Playlist Indexing Started")
+		for range ticker.C {
+			indexing_helpers.CheckPlaylistIndexing()
+			indexing_helpers.CleanupIndexing()
+		}
+	}()
 }
 
 func SkipLoggingMiddleware(next http.Handler) http.Handler {
@@ -139,22 +153,4 @@ func SkipLoggingMiddleware(next http.Handler) http.Handler {
 		}
 		middleware.Logger(next).ServeHTTP(w, r)
 	})
-}
-func checkIndexing() {
-	ticker := time.NewTicker(time.Second * 10)
-	custom_log.Logger.Info("Cron Job For Priority Indexing Started")
-	for range ticker.C {
-		indexing_helpers.CheckIndexing()
-		indexing_helpers.CleanupIndexing()
-	}
-}
-
-func checkPlaylistIndexing() {
-
-	ticker := time.NewTicker(time.Hour * 24)
-	custom_log.Logger.Info("Cron Job For Playlist Indexing Started")
-	for range ticker.C {
-		indexing_helpers.CheckPlaylistIndexing()
-		indexing_helpers.CleanupIndexing()
-	}
 }
