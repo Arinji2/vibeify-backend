@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Arinji2/vibeify-backend/compare"
 	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	"github.com/Arinji2/vibeify-backend/tasks"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
@@ -45,6 +46,8 @@ func main() {
 	taskManager := &TaskManager{}
 	go taskManager.startTaskWorker()
 	go startCronJobs()
+
+	compare.ComparePlaylists()
 
 	r.Get("/", healthHandler)
 	r.Post("/addTask", taskManager.addTaskHandler)
