@@ -32,7 +32,7 @@ func newEmailClient(to string) *EmailClientType {
 
 }
 
-func (e *EmailClientType) SendEmail(subject string, html string) {
+func (e *EmailClientType) SendEmail(subject, html, readableSubject string) {
 
 	e.SendParams.Subject = subject
 	e.SendParams.Html = html
@@ -42,5 +42,5 @@ func (e *EmailClientType) SendEmail(subject string, html string) {
 		return
 	}
 
-	slog.Notice(fmt.Sprintf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], e.SendParams.Subject))
+	slog.Notice(fmt.Sprintf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], readableSubject))
 }

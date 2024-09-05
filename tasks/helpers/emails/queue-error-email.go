@@ -27,6 +27,7 @@ func SendQueueErrorEmail(errorMsg string, email string) {
 	emailClient.SendEmail(
 		"Your Convert Request Has Failed",
 		emailString,
+		"Queue Error",
 	)
 
 }

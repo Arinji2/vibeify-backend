@@ -42,6 +42,7 @@ func SendQueueFinishEmail(isPrem bool, uses int, items []types.QueueFinishedEmai
 	emailClient.SendEmail(
 		"Your Convert Request Has Completed",
 		emailString,
+		"Queue Finished",
 	)
 
 }

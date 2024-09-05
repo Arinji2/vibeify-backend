@@ -27,6 +27,7 @@ func SendQueueAdditionEmail(isPremium bool, email string) {
 	emailClient.SendEmail(
 		"Your Convert Request Has Been Added to the Queue",
 		emailString,
+		"Queue Addition",
 	)
 
 }
