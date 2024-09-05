@@ -58,7 +58,7 @@ func PerformTask(task types.AddTaskType) {
 	}
 
 	custom_log.Logger.Debug("Updating Uses")
-	err = pocketbase_helpers.UpdateUses(user, used, usesID)
+	err = pocketbase_helpers.UpdateLimit(user, used, usesID)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
