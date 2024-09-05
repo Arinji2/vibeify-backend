@@ -78,6 +78,13 @@ func (tm *TaskManager) addTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
+
+	for _, task := range tm.tasks {
+		if task.UserToken == requestBody.UserToken {
+			http.Error(w, "Task Already Exists", http.StatusBadRequest)
+			return
+		}
+	}
 	tm.tasks = append(tm.tasks, requestBody)
 
 	render.Status(r, http.StatusOK)
