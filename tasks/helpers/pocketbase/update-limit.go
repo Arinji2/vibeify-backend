@@ -8,7 +8,7 @@ import (
 	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
 
-func UpdateUses(user *types.PocketbaseUser, used int, usesID string) error {
+func UpdateLimit(user *types.PocketbaseUser, used int, usesID string) error {
 	adminToken := GetPocketbaseAdminToken()
 
 	client := api.NewApiClient()
