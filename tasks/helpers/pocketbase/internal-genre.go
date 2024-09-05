@@ -16,9 +16,7 @@ import (
 func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays) (updatedTracks []types.SpotifyPlaylistItem, err error) {
 	wg := sync.WaitGroup{}
 	adminToken := GetPocketbaseAdminToken()
-	if err != nil {
-		return nil, user_errors.NewUserError("", err)
-	}
+
 	client := api.NewApiClient()
 
 	genreString := strings.Builder{}
@@ -104,8 +102,6 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 				updatedTracks = append(updatedTracks, track)
 
 			}
-
-			return
 
 		}(track, genres)
 
