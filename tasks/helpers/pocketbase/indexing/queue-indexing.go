@@ -10,11 +10,7 @@ import (
 )
 
 func QueueSongIndexing(tracks []types.SpotifyPlaylistItem, priorityIndex string) {
-	adminToken, err := pocketbase_helpers.GetPocketbaseAdminToken()
-	if err != "" {
-		fmt.Println(err)
-		return
-	}
+	adminToken := pocketbase_helpers.GetPocketbaseAdminToken()
 
 	client := api.NewApiClient()
 	var wg sync.WaitGroup
@@ -32,7 +28,8 @@ func QueueSongIndexing(tracks []types.SpotifyPlaylistItem, priorityIndex string)
 				return
 			}
 
-			if err := sendSongToIndex(client, adminToken, track.Track.ID, priorityIndex); err != nil {
+			err := sendSongToIndex(client, adminToken, track.Track.ID, priorityIndex)
+			if err != nil {
 				fmt.Println(err)
 			}
 		}(track)

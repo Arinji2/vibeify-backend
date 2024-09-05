@@ -30,7 +30,7 @@ func CheckIndexing() {
 	})
 
 	if error != nil {
-		fmt.Sprintf("index check: %w", error)
+		fmt.Println("index check:", error)
 
 	}
 

@@ -91,7 +91,7 @@ func getSongsToIndex(client *api.ApiClient, adminToken string) ([]types.Pocketba
 
 	songsItems, ok := songsList["items"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("error parsing songs list")
+		return nil, fmt.Errorf("songs index: error parsing songs list")
 	}
 
 	var songsToIndex []types.PocketbaseSongIndexQueue
@@ -128,7 +128,7 @@ func fetchSpotifyTracks(songsToIndex []types.PocketbaseSongIndexQueue) ([]types.
 
 	tracks, ok := res["tracks"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("error parsing tracks")
+		return nil, fmt.Errorf("songs index: error parsing tracks")
 	}
 
 	var spotifyTracks []types.SpotifyTrack
@@ -155,13 +155,10 @@ func indexSong(client *api.ApiClient, adminToken string, song types.SpotifyTrack
 		return err
 	}
 
-	fmt.Println("Added song to index")
-
 	if err := deleteSongFromIndex(client, adminToken, song.ID); err != nil {
 		return err
 	}
 
-	fmt.Println("Deleted song from Index")
 	return nil
 }
 
@@ -177,8 +174,6 @@ func deleteSongFromIndex(client *api.ApiClient, adminToken string, spotifyID str
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(res)
 
 	songsItemsLocal, ok := res["items"].([]interface{})
 	if !ok {
