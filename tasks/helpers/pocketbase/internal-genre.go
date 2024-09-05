@@ -105,9 +105,12 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 		}(track, genres)
 
+	}
+
+	go func() {
 		wg.Wait()
 		close(errorChannel)
-	}
+	}()
 
 	var finalError error
 	for err := range errorChannel {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gookit/slog"
 	"github.com/resend/resend-go/v2"
 )
 
@@ -41,5 +42,5 @@ func (e *EmailClientType) SendEmail(subject string, html string) {
 		return
 	}
 
-	fmt.Printf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], e.SendParams.Subject)
+	slog.Notice(fmt.Sprintf("Sending Email To %s for Subject %s\n", e.SendParams.To[0], e.SendParams.Subject))
 }

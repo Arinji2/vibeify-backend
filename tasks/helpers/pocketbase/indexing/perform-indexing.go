@@ -64,7 +64,6 @@ func IsIndexingSongs() bool {
 }
 
 func PerformPlaylistIndexing(playlist types.IndexablePlaylist) {
-	fmt.Println(playlist.Link)
 
 	tracks, _, _ := spotify_helpers.GetSpotifyPlaylist(playlist.Link, nil, true)
 

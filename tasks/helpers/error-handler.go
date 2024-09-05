@@ -13,7 +13,6 @@ func HandleError(err error, emailTo string) {
 	if ok {
 		readableError := userError.ReadableError()
 		if emailTo != "" {
-			fmt.Println("Sending Email to ", emailTo)
 
 			email_helpers.SendQueueErrorEmail(readableError, emailTo)
 			panic(err)

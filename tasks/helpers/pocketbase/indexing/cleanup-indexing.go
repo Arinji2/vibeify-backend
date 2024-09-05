@@ -2,9 +2,10 @@ package indexing_helpers
 
 import (
 	"fmt"
-	"log/slog"
 	"math"
 	"sync"
+
+	"github.com/gookit/slog"
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/constants"

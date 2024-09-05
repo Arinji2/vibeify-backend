@@ -77,7 +77,7 @@ From the following genre list, please select multiple genres that best match tho
 				trackGenres = append(trackGenres, genre)
 			}
 		}
-		fmt.Println(trackGenres)
+
 		return
 	}
 

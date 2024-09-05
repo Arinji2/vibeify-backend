@@ -21,7 +21,7 @@ var (
 
 func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...bool) (tracks []types.SpotifyPlaylistItem, playlistName string, err error) {
 	tracks = nil
-	fmt.Println(strings.Split(url, "/"))
+
 	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
 
 	if cachedData, found := playlistCache.Get(playlistID); found {

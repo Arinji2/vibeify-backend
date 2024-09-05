@@ -48,7 +48,6 @@ func checkIfIndexQueued(client *api.ApiClient, adminToken string, spotifyID stri
 
 	totalItems, ok = res["totalItems"].(float64)
 	if !ok {
-		fmt.Println(res)
 		return false, fmt.Errorf("error parsing total items for songs")
 	}
 

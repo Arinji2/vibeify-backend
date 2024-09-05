@@ -2,8 +2,9 @@ package tasks
 
 import (
 	"fmt"
-	"log/slog"
 	"strings"
+
+	"github.com/gookit/slog"
 
 	"github.com/Arinji2/vibeify-backend/tasks/helpers"
 	ai_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/ai"
