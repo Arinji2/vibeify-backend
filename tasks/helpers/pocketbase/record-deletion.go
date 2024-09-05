@@ -7,16 +7,13 @@ import (
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
+	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
 
-func RecordPlaylistForDeletion(user *types.PocketbaseUser, playlists []types.SpotifyPlaylist) (errorText string) {
+func RecordPlaylistForDeletion(user *types.PocketbaseUser, playlists []types.SpotifyPlaylist) error {
 
-	adminToken, err := GetPocketbaseAdminToken()
-	errorText = "Server Error"
-	if err != "" {
-		fmt.Println(err)
-		return
-	}
+	adminToken := GetPocketbaseAdminToken()
+
 	client := api.NewApiClient()
 
 	var dateToBeDeleted string
@@ -29,21 +26,42 @@ func RecordPlaylistForDeletion(user *types.PocketbaseUser, playlists []types.Spo
 	}
 	var wg sync.WaitGroup
 
+	errorChan := make(chan error, len(playlists))
+
 	for _, playlist := range playlists {
 		wg.Add(1)
+
 		go func(playlist types.SpotifyPlaylist) {
 			defer wg.Done()
-			client.SendRequestWithBody("POST", "/api/collections/convertDeletion/records", map[string]string{
+
+			_, _, err := client.SendRequestWithBody("POST", "/api/collections/convertDeletion/records", map[string]string{
 				"toBeDeleted": dateToBeDeleted,
 				"playlistID":  playlist.ID,
 			}, map[string]string{
 				"Authorization": adminToken,
 			})
 
+			if err != nil {
+				errorChan <- user_errors.NewUserError("", err)
+				return
+			}
+
 		}(playlist)
 	}
 
-	wg.Wait()
-	errorText = ""
-	return
+	go func() {
+		wg.Wait()
+		close(errorChan)
+	}()
+	finalErrors := []error{}
+	for err := range errorChan {
+		if err != nil {
+			finalErrors = append(finalErrors, err)
+		}
+	}
+
+	if len(finalErrors) > 0 {
+		return user_errors.NewUserError("", fmt.Errorf("error recording deletion: %v", finalErrors))
+	}
+	return nil
 }
