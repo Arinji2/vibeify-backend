@@ -11,6 +11,7 @@ import (
 
 	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	"github.com/Arinji2/vibeify-backend/tasks"
+	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
 	indexing_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase/indexing"
 	"github.com/Arinji2/vibeify-backend/types"
 	"github.com/go-chi/chi/v5"
@@ -43,7 +44,7 @@ func main() {
 
 	taskManager := &TaskManager{}
 	go taskManager.startTaskWorker()
-	go startIndexingJobs()
+	go startCronJobs()
 
 	r.Get("/", healthHandler)
 	r.Post("/addTask", taskManager.addTaskHandler)
@@ -150,6 +151,17 @@ func startIndexingJobs() {
 			indexing_helpers.CleanupIndexing()
 		}
 	}()
+}
+
+func startCronJobs() {
+	go startIndexingJobs()
+
+	ticker := time.NewTicker(24 * time.Hour)
+	custom_log.Logger.Info("Cron Job For Playlist Deletion Started")
+	for range ticker.C {
+		go pocketbase_helpers.DeleteExpiredPlaylists()
+	}
+
 }
 
 func SkipLoggingMiddleware(next http.Handler) http.Handler {
