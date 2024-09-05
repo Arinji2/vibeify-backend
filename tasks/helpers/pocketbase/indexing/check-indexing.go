@@ -20,11 +20,7 @@ func CheckIndexing() {
 	defer inProgress.Unlock()
 
 	client := api.NewApiClient()
-	adminToken, err := pocketbase_helpers.GetPocketbaseAdminToken()
-	if err != "" {
-		fmt.Println(err)
-		return
-	}
+	adminToken := pocketbase_helpers.GetPocketbaseAdminToken()
 
 	res, _, error := client.SendRequestWithQuery("GET", "/api/collections/songsToIndex/records", map[string]string{
 		"page":    "1",
@@ -34,13 +30,13 @@ func CheckIndexing() {
 	})
 
 	if error != nil {
-		fmt.Println(err)
-		return
+		fmt.Sprintf("index check: %w", error)
+
 	}
 
 	totalItems, ok := res["totalItems"].(float64)
 	if !ok {
-		fmt.Println("Error getting total items")
+		fmt.Println("index check: Error getting total items")
 	}
 
 	if totalItems > 0 {
