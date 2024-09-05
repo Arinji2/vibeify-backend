@@ -156,11 +156,21 @@ func startIndexingJobs() {
 func startCronJobs() {
 	go startIndexingJobs()
 
-	ticker := time.NewTicker(24 * time.Hour)
-	custom_log.Logger.Info("Cron Job For Playlist Deletion Started")
-	for range ticker.C {
-		go pocketbase_helpers.DeleteExpiredPlaylists()
-	}
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		custom_log.Logger.Info("Cron Job For Playlist Deletion Started")
+		for range ticker.C {
+			pocketbase_helpers.DeleteExpiredPlaylists()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(time.Hour * 24 * 7)
+		custom_log.Logger.Info("Cron Job For Limit Reset Started")
+		for range ticker.C {
+			pocketbase_helpers.ResetLimits()
+		}
+	}()
 
 }
 
