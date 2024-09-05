@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
+
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func ValidateUser(token string) (user *types.PocketbaseUser, errorText string) {
+func ValidateUser(token string) (user *types.PocketbaseUser, error error) {
 
 	client := api.NewApiClient()
 	res, _, err := client.SendRequestWithBody("POST", "/api/collections/users/auth-refresh", nil, map[string]string{
@@ -16,14 +18,14 @@ func ValidateUser(token string) (user *types.PocketbaseUser, errorText string) {
 	})
 
 	if err != nil {
-		errorText = "Invalid User"
-		return nil, errorText
+
+		return nil, user_errors.NewUserError("invalid user", err)
 	}
 	data, err := json.Marshal(res["record"])
 	if err != nil {
 		fmt.Println("Marshalling Error", err)
-		errorText = "Server Error"
-		return nil, errorText
+
+		return nil, user_errors.NewUserError("", err)
 
 	}
 
@@ -33,8 +35,8 @@ func ValidateUser(token string) (user *types.PocketbaseUser, errorText string) {
 
 	if err != nil {
 		fmt.Println("Error in parsing", err)
-		errorText = "Server Error"
-		return nil, errorText
+
+		return nil, user_errors.NewUserError("", err)
 	}
 
 	pocketbaseUser := types.PocketbaseUser{
@@ -42,6 +44,6 @@ func ValidateUser(token string) (user *types.PocketbaseUser, errorText string) {
 		Record: record,
 	}
 
-	return &pocketbaseUser, ""
+	return &pocketbaseUser, nil
 
 }
