@@ -33,12 +33,53 @@ func PerformTask(task types.AddTaskType) {
 
 	slog.Debug("Sending Addition Email")
 	email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
+
 	slog.Debug("Getting Spotify Playlist")
 	tracks, playlistName, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
 
+	genreArrays := setupArrays(task)
+
+	slog.Debug("Getting Internal Genre")
+	updatedTracks, err := pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
+	if err != nil {
+		helpers.HandleError(err, user.Record.Email)
+	}
+
+	slog.Debug("Getting External Genre")
+	ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
+
+	slog.Debug("Creating Playlists")
+	createdPlaylists, err := spotify_helpers.CreatePlaylists(playlistName, genreArrays)
+	if err != nil {
+		helpers.HandleError(err, user.Record.Email)
+	}
+
+	slog.Debug("Updating Uses")
+	err = pocketbase_helpers.UpdateUses(user, used, usesID)
+	if err != nil {
+		helpers.HandleError(err, user.Record.Email)
+	}
+
+	slog.Debug("Recording Deletion")
+	err = pocketbase_helpers.RecordPlaylistForDeletion(user, createdPlaylists)
+	if err != nil {
+		helpers.HandleError(err, user.Record.Email)
+	}
+
+	emailItems := getEmailItems(createdPlaylists)
+
+	slog.Debug("Sending Finish Email")
+	email_helpers.SendQueueFinishEmail(user.Record.Premium, used+1, emailItems, user.Record.Email)
+
+	slog.Debug("Indexing Songs")
+	go indexing_helpers.QueueSongIndexing(updatedTracks, "1")
+
+}
+
+func setupArrays(task types.AddTaskType) types.GenreArrays {
 	genreArrays := types.GenreArrays{}
 
 	for i, genre := range task.Genres {
@@ -49,32 +90,13 @@ func PerformTask(task types.AddTaskType) {
 	}
 
 	genreArrays["unknown"] = []types.GenreArray{}
-	slog.Debug("Getting Internal Genre")
-	updatedTracks, err := pocketbase_helpers.GetInternalGenre(tracks, task.Genres, genreArrays)
-	if err != nil {
-		helpers.HandleError(err, user.Record.Email)
-	}
-	slog.Debug("Getting External Genre")
-	ai_helpers.GetExternalGenre(updatedTracks, task.Genres, genreArrays)
-	slog.Debug("Creating Playlists")
-	createdPlaylists, err := spotify_helpers.CreatePlaylists(playlistName, genreArrays)
-	if err != nil {
-		helpers.HandleError(err, user.Record.Email)
-	}
-	slog.Debug("Updating Uses")
-	err = pocketbase_helpers.UpdateUses(user, used, usesID)
-	if err != nil {
-		helpers.HandleError(err, user.Record.Email)
-	}
-	slog.Debug("Recording Deletion")
-	err = pocketbase_helpers.RecordPlaylistForDeletion(user, createdPlaylists)
-	if err != nil {
-		helpers.HandleError(err, user.Record.Email)
-	}
+	return genreArrays
+}
 
+func getEmailItems(playlists []types.SpotifyPlaylist) []types.QueueFinishedEmailItems {
 	emailItems := []types.QueueFinishedEmailItems{}
 
-	for i, playlist := range createdPlaylists {
+	for i, playlist := range playlists {
 		data := types.QueueFinishedEmailItems{
 			ID:   i + 1,
 			Name: playlist.Name,
@@ -83,9 +105,5 @@ func PerformTask(task types.AddTaskType) {
 
 		emailItems = append(emailItems, data)
 	}
-	slog.Debug("Sending Finish Email")
-	email_helpers.SendQueueFinishEmail(user.Record.Premium, used+1, emailItems, user.Record.Email)
-	slog.Debug("Indexing Songs")
-	go indexing_helpers.QueueSongIndexing(updatedTracks, "1")
-
+	return emailItems
 }
