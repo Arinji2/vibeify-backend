@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
+	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	"github.com/Arinji2/vibeify-backend/tasks"
 	indexing_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase/indexing"
 	"github.com/Arinji2/vibeify-backend/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
-	"github.com/gookit/slog"
 	"github.com/joho/godotenv"
 )
 
@@ -24,16 +24,6 @@ var (
 	taskInProgress bool = false
 	mu             sync.Mutex
 )
-
-func SkipLoggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health" {
-			next.ServeHTTP(w, r)
-			return
-		}
-		middleware.Logger(next).ServeHTTP(w, r)
-	})
-}
 
 func main() {
 
@@ -47,16 +37,11 @@ func main() {
 		if !isProduction {
 			log.Fatal("Error loading .env file")
 		} else {
-			slog.Warn("Using Production Environment")
+			custom_log.Logger.Warn("Using Production Environment")
 		}
 	} else {
-		slog.Warn("Using Development Environment")
+		custom_log.Logger.Warn("Using Development Environment")
 	}
-
-	slog.Configure(func(logger *slog.SugaredLogger) {
-		f := logger.Formatter.(*slog.TextFormatter)
-		f.EnableColor = true
-	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Vibeify Backend: Request Received")
@@ -132,11 +117,11 @@ func checkTasks() {
 		return
 	}
 	ticker := time.NewTicker(time.Millisecond * 10)
-	slog.Info("Cron Job For Task Check Started")
+	custom_log.Logger.Info("Cron Job For Task Check Started")
 	for range ticker.C {
 		if len(tasksArr) > 0 {
 			selectedTask := tasksArr[0]
-			slog.Info(fmt.Sprintf("New task found. Tasks Remaining: %v", len(tasksArr)))
+			custom_log.Logger.Info(fmt.Sprintf("New task found. Tasks Remaining: %v", len(tasksArr)))
 			taskInProgress = true
 			tasksArr = tasksArr[1:]
 			tasks.PerformTask(selectedTask)
@@ -146,9 +131,18 @@ func checkTasks() {
 	}
 }
 
+func SkipLoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		middleware.Logger(next).ServeHTTP(w, r)
+	})
+}
 func checkIndexing() {
 	ticker := time.NewTicker(time.Second * 10)
-	slog.Info("Cron Job For Indexing Started")
+	custom_log.Logger.Info("Cron Job For Priority Indexing Started")
 	for range ticker.C {
 		indexing_helpers.CheckIndexing()
 		indexing_helpers.CleanupIndexing()
@@ -158,7 +152,7 @@ func checkIndexing() {
 func checkPlaylistIndexing() {
 
 	ticker := time.NewTicker(time.Hour * 24)
-	slog.Info("Cron Job For Playlist Indexing Started")
+	custom_log.Logger.Info("Cron Job For Playlist Indexing Started")
 	for range ticker.C {
 		indexing_helpers.CheckPlaylistIndexing()
 		indexing_helpers.CleanupIndexing()
