@@ -2,6 +2,7 @@ package pocketbase_helpers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -9,13 +10,14 @@ import (
 
 	"github.com/Arinji2/vibeify-backend/api"
 	"github.com/Arinji2/vibeify-backend/types"
+	user_errors "github.com/Arinji2/vibeify-backend/user-errors"
 )
 
-func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays) (errorString string, updatedTracks []types.SpotifyPlaylistItem) {
+func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays) (updatedTracks []types.SpotifyPlaylistItem, err error) {
 	wg := sync.WaitGroup{}
-	AdminToken, errorString := GetPocketbaseAdminToken()
-	if errorString != "" {
-		return
+	AdminToken, err := GetPocketbaseAdminToken()
+	if err != nil {
+		return nil, user_errors.NewUserError("", err)
 	}
 	client := api.NewApiClient()
 
@@ -28,7 +30,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 	}
 
-	errorString = "Server Error"
+	errorChannel := make(chan error, len(tracks))
 
 	for _, track := range tracks {
 		wg.Add(1)
@@ -42,13 +44,13 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 				"Authorization": AdminToken,
 			})
 			if err != nil {
-				fmt.Println("Error in getting song record", err)
+				errorChannel <- user_errors.NewUserError("", err)
 				return
 			}
 
 			totalItems, ok := res["totalItems"].(float64)
 			if !ok {
-				fmt.Println("Error converting totalItems to int:", err)
+				errorChannel <- user_errors.NewUserError("", errors.New("totalItems is not a float64"))
 				return
 			}
 			if totalItems == 0 {
@@ -58,20 +60,21 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 			items, ok := res["items"].([]interface{})
 			if !ok {
-				fmt.Println("Error converting items to []interface{}:", err)
+				errorChannel <- user_errors.NewUserError("", errors.New("items is not a []interface{}"))
 				return
 			}
 
 			marshalledItems, err := json.Marshal(items)
 			if err != nil {
-				fmt.Println("Error marshalling items:", err)
+				errorChannel <- user_errors.NewUserError("", err)
 				return
 			}
 
 			records := []types.PocketbaseSongRecord{}
 			err = json.Unmarshal(marshalledItems, &records)
 			if err != nil {
-				fmt.Println("Error unmarshalling records:", err)
+
+				errorChannel <- user_errors.NewUserError("", err)
 				return
 			}
 
@@ -102,13 +105,29 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 			}
 
+			return
+
 		}(track, genres)
 
 		wg.Wait()
-
+		close(errorChannel)
 	}
 
-	errorString = ""
+	var finalError error
+	for err := range errorChannel {
+		if err != nil {
+			if finalError == nil {
+				finalError = err
+			} else {
+				finalError = fmt.Errorf("%v; %v", finalError, err)
+			}
+		}
+	}
 
-	return
+	if finalError != nil {
+		return nil, user_errors.NewUserError("", finalError)
+	}
+
+	return updatedTracks, nil
+
 }
