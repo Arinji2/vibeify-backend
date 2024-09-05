@@ -12,7 +12,7 @@ import (
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
-func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays, updatedPrompt ...string) (errorString string) {
+func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays, updatedPrompt ...string) {
 
 	accessKey := os.Getenv("ACCESS_KEY")
 
@@ -105,7 +105,5 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 	}
 
 	wg.Wait()
-	errorString = ""
 
-	return
 }
