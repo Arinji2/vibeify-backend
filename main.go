@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/gookit/slog"
 	"github.com/joho/godotenv"
 )
 
@@ -52,6 +53,11 @@ func main() {
 	} else {
 		fmt.Println("Using Development Environment")
 	}
+
+	slog.Configure(func(logger *slog.SugaredLogger) {
+		f := logger.Formatter.(*slog.TextFormatter)
+		f.EnableColor = true
+	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Vibeify Backend: Request Received")
