@@ -15,7 +15,7 @@ import (
 
 func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genreArrays types.GenreArrays) (updatedTracks []types.SpotifyPlaylistItem, err error) {
 	wg := sync.WaitGroup{}
-	AdminToken, err := GetPocketbaseAdminToken()
+	adminToken := GetPocketbaseAdminToken()
 	if err != nil {
 		return nil, user_errors.NewUserError("", err)
 	}
@@ -41,7 +41,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 				"perPage": "1",
 				"filter":  fmt.Sprintf(`spotifyID = "%s" && (%s)`, track.Track.ID, genreString.String()),
 			}, map[string]string{
-				"Authorization": AdminToken,
+				"Authorization": adminToken,
 			})
 			if err != nil {
 				errorChannel <- user_errors.NewUserError("", err)
@@ -50,7 +50,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 			totalItems, ok := res["totalItems"].(float64)
 			if !ok {
-				errorChannel <- user_errors.NewUserError("", errors.New("totalItems is not a float64"))
+				errorChannel <- user_errors.NewUserError("", errors.New("internal genre: totalItems is not a float64"))
 				return
 			}
 			if totalItems == 0 {
@@ -60,7 +60,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 
 			items, ok := res["items"].([]interface{})
 			if !ok {
-				errorChannel <- user_errors.NewUserError("", errors.New("items is not a []interface{}"))
+				errorChannel <- user_errors.NewUserError("", errors.New("internal genre: items is not a []interface{}"))
 				return
 			}
 
