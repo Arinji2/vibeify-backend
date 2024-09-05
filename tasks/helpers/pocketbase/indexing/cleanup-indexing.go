@@ -2,22 +2,18 @@ package indexing_helpers
 
 import (
 	"fmt"
+	"log/slog"
 	"math"
 	"sync"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	"github.com/Arinji2/vibeify-backend/constants"
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
 )
 
-const MaxRecordsAllowed = 5000
-
 func CleanupIndexing() {
-	adminToken, err := pocketbase_helpers.GetPocketbaseAdminToken()
+	adminToken := pocketbase_helpers.GetPocketbaseAdminToken()
 
-	if err != "" {
-		fmt.Println(err)
-		return
-	}
 	client := api.NewApiClient()
 	res, _, error := client.SendRequestWithQuery("GET", "/api/collections/songs/records", map[string]string{
 		"page":    "1",
@@ -34,14 +30,14 @@ func CleanupIndexing() {
 
 	totalRecords, ok := res["totalItems"].(float64)
 	if !ok {
-		fmt.Println("Error getting total records")
+		fmt.Println("index cleanup: Error getting total records")
 	}
 
-	if totalRecords < MaxRecordsAllowed {
+	if totalRecords < constants.MAX_SONGS_ALLOWED {
 		return
 	}
 
-	perPage := math.Max((totalRecords - MaxRecordsAllowed), MaxRecordsAllowed)
+	perPage := math.Max((totalRecords - constants.MAX_SONGS_ALLOWED), constants.MAX_SONGS_ALLOWED)
 
 	res, _, error = client.SendRequestWithQuery("GET", "/api/collections/songs/records", map[string]string{
 		"page":      "1",
@@ -60,14 +56,14 @@ func CleanupIndexing() {
 
 	items, ok := res["items"].([]interface{})
 	if !ok {
-		fmt.Println("Error getting items")
+		fmt.Println("index cleanup: Error getting items")
 		return
 	}
 
 	pool := make(chan struct{}, 5)
 	cleanupWg := sync.WaitGroup{}
 
-	fmt.Println("Extra Results Found, Purging.")
+	slog.Debug("Extra Songs Found, Purging.")
 
 	for _, item := range items {
 		cleanupWg.Add(1)
