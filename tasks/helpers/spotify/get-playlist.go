@@ -19,9 +19,11 @@ var (
 	playlistCache     = cache.NewCache(500, 10*time.Minute)
 )
 
-func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...bool) (tracks []types.SpotifyPlaylistItem, playlistName string, err error) {
+func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, fields string) (tracks []types.SpotifyPlaylistItem, playlistName string, err error) {
 	tracks = nil
-
+	if fields == "" {
+		fields = "id,name,description,owner(display_name,id),tracks.items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),tracks.total,tracks.offset,tracks.limit"
+	}
 	playlistID := strings.Split(strings.Split(url, "/")[4], "?")[0]
 
 	if cachedData, found := playlistCache.Get(playlistID); found {
@@ -35,7 +37,7 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 
 	client := api.NewApiClient("https://api.spotify.com/v1")
 	res, status, err := client.SendRequestWithQuery("GET", fmt.Sprintf("/playlists/%s", playlistID), map[string]string{
-		"fields": "id,name,description,owner(display_name,id),tracks.items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),tracks.total,tracks.offset,tracks.limit",
+		"fields": fields,
 	}, map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", token),
 	})
@@ -54,7 +56,7 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 		retries++
 		if retries < 3 {
 			fmt.Println("Retrying Spotify Authentication")
-			return GetSpotifyPlaylist(url, user)
+			return GetSpotifyPlaylist(url, user, fields)
 		} else {
 
 			return nil, "", user_errors.NewUserError("", errors.New("spotify token expired"))
@@ -73,11 +75,11 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 		return nil, "", user_errors.NewUserError("", fmt.Errorf("error unmarshalling into struct: %v", err))
 	}
 
-	isIndexing := false
-	if len(indexingFlag) > 0 {
-		isIndexing = indexingFlag[0]
+	isSystemCalled := false
+	if user == nil {
+		isSystemCalled = true
 	}
-	if !isIndexing {
+	if !isSystemCalled {
 		if Playlist.Tracks.Total > constants.MAX_FREE_PLAYLIST_SIZE && !user.Record.Premium {
 			return nil, "", user_errors.NewUserError(fmt.Sprintf("Playlist is too large. Maximum size is %d tracks for free users", constants.MAX_FREE_PLAYLIST_SIZE), errors.New("playlist-exceeds-free-limit"))
 		}
@@ -87,46 +89,67 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, indexingFlag ...
 		}
 	}
 
+	localTracks, err := GetPaginatedTracks(Playlist, token, playlistID, !isSystemCalled)
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	Playlist.Tracks.Items = append(Playlist.Tracks.Items, localTracks...)
+	tracks = Playlist.Tracks.Items
+	playlistCache.Set(playlistID, Playlist, time.Hour)
+
+	playlistName = Playlist.Name
+
+	return tracks, playlistName, nil
+}
+
+func GetPaginatedTracks(Playlist types.SpotifyPlaylist, token string, playlistID string, userErrors bool) (tracks []types.SpotifyPlaylistItem, err error) {
+	localPlaylist := Playlist
+	client := api.NewApiClient("https://api.spotify.com/v1")
+
 	for {
-		if (Playlist.Tracks.Offset + Playlist.Tracks.Limit) >= Playlist.Tracks.Total {
+		if (localPlaylist.Tracks.Offset + localPlaylist.Tracks.Limit) >= localPlaylist.Tracks.Total {
 			break
 		}
-		Playlist.Tracks.Offset += Playlist.Tracks.Limit
-		res, _, err = client.SendRequestWithQuery("GET", fmt.Sprintf("/playlists/%s/tracks", playlistID), map[string]string{
+		localPlaylist.Tracks.Offset += localPlaylist.Tracks.Limit
+		res, _, err := client.SendRequestWithQuery("GET", fmt.Sprintf("/playlists/%s/tracks", playlistID), map[string]string{
 			"fields": "items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),total,offset,limit",
 			"limit":  "100",
-			"offset": fmt.Sprintf("%d", Playlist.Tracks.Offset),
+			"offset": fmt.Sprintf("%d", localPlaylist.Tracks.Offset),
 		}, map[string]string{
 			"Authorization": fmt.Sprintf("Bearer %s", token),
 		})
 
 		Items := []types.SpotifyPlaylistItem{}
 		if err != nil {
-			return nil, "", user_errors.NewUserError("", fmt.Errorf("error sending request: %v", err))
+			if userErrors {
+				return nil, user_errors.NewUserError("", fmt.Errorf("error sending request: %v", err))
+			} else {
+				return nil, fmt.Errorf("error sending request: %v", err)
+			}
 		}
 
 		jsonData, err := json.Marshal(res["items"])
 		if err != nil {
-			return nil, "", user_errors.NewUserError("", fmt.Errorf("error marshalling response: %v", err))
+			if userErrors {
+				return nil, user_errors.NewUserError("", fmt.Errorf("error marshalling response: %v", err))
+			} else {
+				return nil, fmt.Errorf("error marshalling response: %v", err)
+			}
 		}
 
 		err = json.Unmarshal(jsonData, &Items)
 		if err != nil {
-			return nil, "", user_errors.NewUserError("", fmt.Errorf("error unmarshalling into struct: %v", err))
+			if userErrors {
+				return nil, user_errors.NewUserError("", fmt.Errorf("error unmarshalling into struct: %v", err))
+			} else {
+				return nil, fmt.Errorf("error unmarshalling into struct: %v", err)
+			}
 		}
 
-		Playlist.Tracks.Items = append(Playlist.Tracks.Items, Items...)
+		localPlaylist.Tracks.Items = append(localPlaylist.Tracks.Items, Items...)
 	}
 
-	for _, track := range Playlist.Tracks.Items {
-		if !track.Track.IsLocal {
-			tracks = append(tracks, track)
-		}
-	}
-
-	playlistCache.Set(playlistID, Playlist, time.Hour)
-
-	playlistName = Playlist.Name
-
-	return tracks, playlistName, nil
+	return localPlaylist.Tracks.Items, nil
 }

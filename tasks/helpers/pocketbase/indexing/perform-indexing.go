@@ -65,7 +65,7 @@ func IsIndexingSongs() bool {
 
 func PerformPlaylistIndexing(playlist types.IndexablePlaylist) {
 
-	tracks, _, _ := spotify_helpers.GetSpotifyPlaylist(playlist.Link, nil, true)
+	tracks, _, _ := spotify_helpers.GetSpotifyPlaylist(playlist.Link, nil, "")
 
 	go QueueSongIndexing(tracks, "0")
 

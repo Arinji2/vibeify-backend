@@ -35,7 +35,7 @@ func PerformTask(task types.AddTaskType) {
 	email_helpers.SendQueueAdditionEmail(user.Record.Premium, user.Record.Email)
 
 	custom_log.Logger.Debug("Getting Spotify Playlist")
-	tracks, playlistName, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user)
+	tracks, playlistName, err := spotify_helpers.GetSpotifyPlaylist(task.SpotifyURL, user, "")
 	if err != nil {
 		helpers.HandleError(err, user.Record.Email)
 	}
