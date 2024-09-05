@@ -2,6 +2,7 @@ package pocketbase_helpers
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -15,24 +16,24 @@ var (
 	mu          sync.Mutex
 )
 
-const tokenValidity = 604800 * time.Second // 7 days
-func GetPocketbaseAdminToken() (token string, errorString string) {
+const tokenValidity = time.Hour * 24 * 7
+
+func GetPocketbaseAdminToken() (token string) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	errorString = "Server Error"
+
 	if time.Now().Before(expiryCache) && tokenCache != "" {
 		token = tokenCache
-		errorString = ""
-		return
+
+		return token
 	}
 
 	identityEmail := os.Getenv("ADMIN_EMAIL")
 	password := os.Getenv("ADMIN_PASSWORD")
 
 	if identityEmail == "" || password == "" {
-		fmt.Println("Environment Variables not present to authenticate Admin")
-		return
+		log.Fatal("Environment Variables not present to authenticate Admin")
 
 	}
 
@@ -58,7 +59,6 @@ func GetPocketbaseAdminToken() (token string, errorString string) {
 	tokenCache = token
 	expiryCache = time.Now().Add(tokenValidity)
 
-	errorString = ""
-	return
+	return token
 
 }
