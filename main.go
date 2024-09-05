@@ -21,9 +21,8 @@ import (
 
 var tasksArr []types.AddTaskType
 var (
-	taskInProgress    bool = false
-	mu                sync.Mutex
-	totalTimesChecked int = 0
+	taskInProgress bool = false
+	mu             sync.Mutex
 )
 
 func SkipLoggingMiddleware(next http.Handler) http.Handler {
@@ -48,10 +47,10 @@ func main() {
 		if !isProduction {
 			log.Fatal("Error loading .env file")
 		} else {
-			fmt.Println("Using Production Environment")
+			slog.Warn("Using Production Environment")
 		}
 	} else {
-		fmt.Println("Using Development Environment")
+		slog.Warn("Using Development Environment")
 	}
 
 	slog.Configure(func(logger *slog.SugaredLogger) {
@@ -133,20 +132,11 @@ func checkTasks() {
 		return
 	}
 	ticker := time.NewTicker(time.Millisecond * 10)
+	slog.Info("Cron Job For Task Check Started")
 	for range ticker.C {
-		if totalTimesChecked < 5 {
-			fmt.Println("Checking for new tasks")
-		} else if totalTimesChecked == 5 {
-			fmt.Println("Holding off logging for new tasks")
-
-		}
-
-		totalTimesChecked++
 		if len(tasksArr) > 0 {
-
-			totalTimesChecked = 0
 			selectedTask := tasksArr[0]
-			fmt.Println("New task found")
+			slog.Info(fmt.Sprintf("New task found. Tasks Remaining: %v", len(tasksArr)))
 			taskInProgress = true
 			tasksArr = tasksArr[1:]
 			tasks.PerformTask(selectedTask)
@@ -158,16 +148,17 @@ func checkTasks() {
 
 func checkIndexing() {
 	ticker := time.NewTicker(time.Second * 10)
+	slog.Info("Cron Job For Indexing Started")
 	for range ticker.C {
-
 		indexing_helpers.CheckIndexing()
 		indexing_helpers.CleanupIndexing()
 	}
 }
 
 func checkPlaylistIndexing() {
-	ticker := time.NewTicker(time.Hour * 24)
 
+	ticker := time.NewTicker(time.Hour * 24)
+	slog.Info("Cron Job For Playlist Indexing Started")
 	for range ticker.C {
 		indexing_helpers.CheckPlaylistIndexing()
 		indexing_helpers.CleanupIndexing()
