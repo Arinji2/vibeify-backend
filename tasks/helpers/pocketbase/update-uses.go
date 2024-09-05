@@ -12,12 +12,21 @@ func UpdateUses(user *types.PocketbaseUser, used int, usesID string) error {
 	adminToken := GetPocketbaseAdminToken()
 
 	client := api.NewApiClient()
-	_, _, error := client.SendRequestWithBody("PATCH", fmt.Sprintf("/api/collections/convertLimit/records/%s", usesID), map[string]string{
+	_, status, error := client.SendRequestWithBody("PATCH", fmt.Sprintf("/api/collections/convertLimit/records/%s", usesID), map[string]string{
 		"uses": fmt.Sprintf("%d", used+1),
 		"user": user.Record.ID,
 	}, map[string]string{
 		"Authorization": adminToken,
 	})
+
+	if status == 404 {
+		client.SendRequestWithBody("POST", "/api/collections/convertLimit/records", map[string]string{
+			"uses": fmt.Sprintf("%d", used+1),
+			"user": user.Record.ID,
+		}, map[string]string{
+			"Authorization": adminToken,
+		})
+	}
 
 	if error != nil {
 
