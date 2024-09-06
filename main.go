@@ -47,11 +47,10 @@ func main() {
 	go taskManager.startTaskWorker()
 	go startCronJobs()
 
-	compare.ComparePlaylists()
-
 	r.Get("/", healthHandler)
 	r.Post("/addTask", taskManager.addTaskHandler)
 	r.Get("/index/playlists", playlistIndexingHandler)
+	r.Post("/compare", compare.CompareHandler)
 	r.Get("/health", healthCheckHandler)
 
 	http.ListenAndServe(":8080", r)

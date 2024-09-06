@@ -32,3 +32,17 @@ type PocketbaseSongIndexQueue struct {
 	Id        string `json:"id"`
 	SpotifyID string `json:"spotifyID"`
 }
+
+type PocketbaseCompareRecord struct {
+	ID        string `json:"id"`
+	Playlist1 string `json:"playlist1"`
+	Playlist2 string `json:"playlist2"`
+	User      string `json:"user"`
+	Results   string `json:"results"`
+}
+
+type PocketbaseCompareResults struct {
+	Common     []string `json:"common"`
+	MissingIn1 []string `json:"missingIn1"`
+	MissingIn2 []string `json:"missingIn2"`
+}
