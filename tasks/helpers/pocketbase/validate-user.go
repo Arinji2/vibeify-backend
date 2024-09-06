@@ -44,6 +44,10 @@ func ValidateUser(token string) (user *types.PocketbaseUser, error error) {
 		Record: record,
 	}
 
+	if pocketbaseUser.Record.Email == "" {
+		return nil, user_errors.NewUserError("invalid user", err)
+	}
+
 	return &pocketbaseUser, nil
 
 }
