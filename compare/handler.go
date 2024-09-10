@@ -2,6 +2,7 @@ package compare
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
@@ -10,13 +11,17 @@ import (
 
 func CompareHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody types.CompareTaskType
+
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(&requestBody); err != nil {
+		fmt.Println(err)
 		http.Error(w, "Invalid Input", http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println(requestBody)
 
 	user, err := pocketbase_helpers.ValidateUser(requestBody.UserToken)
 	if err != nil {

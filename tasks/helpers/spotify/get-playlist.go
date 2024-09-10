@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/api"
@@ -25,12 +24,7 @@ func GetSpotifyPlaylist(url string, user *types.PocketbaseUser, fields string) (
 		fields = "id,name,description,owner(display_name,id),tracks.items(added_at,track(id,name,artists(id,name),album(id,name),external_urls.spotify,uri)),tracks.total,tracks.offset,tracks.limit"
 	}
 
-	playlistID := ""
-	if strings.Contains(url, "https://open.spotify.com") {
-		playlistID = strings.Split(strings.Split(url, "/")[4], "?")[0]
-	} else {
-		playlistID = url
-	}
+	playlistID := CleanupID(url)
 
 	if cachedData, found := playlistCache.Get(playlistID); found {
 		playlist := cachedData.(types.SpotifyPlaylist)

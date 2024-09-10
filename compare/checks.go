@@ -2,9 +2,9 @@ package compare
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 
 	"github.com/Arinji2/vibeify-backend/types"
 )
@@ -39,8 +39,9 @@ func CheckExistingCompares(user types.PocketbaseUser) bool {
 }
 
 func CheckIfCompareExists(user types.PocketbaseUser, taskData types.CompareTaskType) bool {
-	playlist1ID := strings.Split(strings.Split(taskData.Playlist1, "/")[4], "?")[0]
-	playlist2ID := strings.Split(strings.Split(taskData.Playlist2, "/")[4], "?")[0]
+
+	playlist1ID := spotify_helpers.CleanupID(taskData.Playlist1)
+	playlist2ID := spotify_helpers.CleanupID(taskData.Playlist2)
 
 	client := api.NewApiClient()
 	res, _, err := client.SendRequestWithQuery("GET", "/api/collections/compareList/records", map[string]string{
