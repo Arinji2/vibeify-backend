@@ -29,6 +29,7 @@ type TaskManager struct {
 
 func main() {
 	r := chi.NewRouter()
+	r.Use(CORS)
 	r.Use(SkipLoggingMiddleware)
 
 	err := godotenv.Load()
@@ -153,6 +154,24 @@ func startIndexingJobs() {
 			indexing_helpers.CleanupIndexing()
 		}
 	}()
+}
+
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// If it's an OPTIONS request, handle it directly and return
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Pass to the next middleware or handler
+		next.ServeHTTP(w, r)
+	})
 }
 
 func startCronJobs() {
