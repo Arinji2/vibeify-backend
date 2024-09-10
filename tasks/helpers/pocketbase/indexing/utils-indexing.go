@@ -67,6 +67,10 @@ func sendSongToIndex(client *api.ApiClient, adminToken string, spotifyID string,
 	if exists {
 		return nil
 	}
+
+	if spotifyID == "" {
+		return nil
+	}
 	_, _, err := client.SendRequestWithBody("POST", "/api/collections/songsToIndex/records", map[string]string{
 		"spotifyID": spotifyID,
 		"priority":  priority,
@@ -145,6 +149,9 @@ func fetchSpotifyTracks(songsToIndex []types.PocketbaseSongIndexQueue) ([]types.
 
 func indexSong(client *api.ApiClient, adminToken string, song types.SpotifyTrack) error {
 	songGenres := ai_helpers.IndexGenre(song)
+	if songGenres == nil {
+		return nil
+	}
 	if _, _, err := client.SendRequestWithBody("POST", "/api/collections/songs/records", map[string]any{
 		"spotifyID": song.ID,
 		"genres":    songGenres,
