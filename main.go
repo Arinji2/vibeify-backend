@@ -138,6 +138,12 @@ func (tm *TaskManager) startTaskWorker() {
 
 func startIndexingJobs() {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in Priority Indexing: %v", r))
+			}
+		}()
+
 		ticker := time.NewTicker(10 * time.Second)
 		custom_log.Logger.Info("Cron Job For Priority Indexing Started")
 		for range ticker.C {
@@ -147,6 +153,12 @@ func startIndexingJobs() {
 	}()
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in Playlist Indexing: %v", r))
+			}
+		}()
+
 		ticker := time.NewTicker(24 * time.Hour)
 		custom_log.Logger.Info("Cron Job For Playlist Indexing Started")
 		for range ticker.C {
@@ -178,6 +190,12 @@ func startCronJobs() {
 	go startIndexingJobs()
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in Playlist Deletion: %v", r))
+			}
+		}()
+
 		ticker := time.NewTicker(24 * time.Hour)
 		custom_log.Logger.Info("Cron Job For Playlist Deletion Started")
 		for range ticker.C {
@@ -186,15 +204,19 @@ func startCronJobs() {
 	}()
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				custom_log.Logger.Error(fmt.Sprintf("Recovered from panic in Limit Reset: %v", r))
+			}
+		}()
+
 		ticker := time.NewTicker(time.Hour * 24 * 7)
 		custom_log.Logger.Info("Cron Job For Limit Reset Started")
 		for range ticker.C {
 			pocketbase_helpers.ResetLimits()
 		}
 	}()
-
 }
-
 func SkipLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
