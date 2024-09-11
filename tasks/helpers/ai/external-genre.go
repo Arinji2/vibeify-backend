@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	"github.com/Arinji2/vibeify-backend/types"
 )
 
@@ -20,7 +21,7 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	var pool = make(chan struct{}, 10)
+	var pool = make(chan struct{}, 2)
 
 	for _, track := range remainingTracks {
 		wg.Add(1)
@@ -40,7 +41,8 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 				genreString = genreString + genre + ", "
 			}
 
-			prompt := fmt.Sprintf("Given the song name %s by artists %s Your objective is to guess the genre of the song, which is ONLY %s. Reply with ONLY the genre name, nothing else. Choose only one genre", track.Track.Name, artistString, genreString)
+			prompt := fmt.Sprintf("Given the song name %s by artists %s, you are to guess the genre of the song. The available genres are %s. Reply with ONLY one genre from this list, nothing else.", track.Track.Name, artistString, genreString)
+
 			if len(updatedPrompt) > 0 {
 				prompt = prompt + updatedPrompt[0]
 			}
@@ -64,7 +66,7 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 					retries++
 					if status == 500 {
 						//this is when the AI API is overloaded, we wait here
-						time.Sleep(time.Minute * 1)
+						time.Sleep(time.Second * 30)
 					}
 					continue
 				}
@@ -86,10 +88,11 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 					mu.Unlock()
 					break
 				} else {
-					updatedPromptString := fmt.Sprintf("The genre you guessed doesn't exist. DON'T GUESS THE GENRE %s", message)
+
+					updatedPromptString := fmt.Sprintf("Do not say %s", message)
 					prompt = prompt + updatedPromptString
 					retries++
-					fmt.Println("Retrying AI Request With Updated Prompt")
+					custom_log.Logger.Info("Retrying AI Request With Updated Prompt")
 				}
 			}
 

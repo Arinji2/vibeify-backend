@@ -34,6 +34,7 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 	}
 
 	errorChannel := make(chan error, len(tracks))
+	var mutex sync.Mutex
 
 	for _, track := range tracks {
 		wg.Add(1)
@@ -94,10 +95,11 @@ func GetInternalGenre(tracks []types.SpotifyPlaylistItem, genres []string, genre
 				genreMatch := slices.Contains(record.Genres, genre)
 				if genreMatch {
 					hasMatched = true
-
+					mutex.Lock()
 					localGenreArrays[genre] = append(localGenreArrays[genre], types.GenreArray{
 						URI: track.Track.URI,
 					})
+					mutex.Unlock()
 
 				}
 

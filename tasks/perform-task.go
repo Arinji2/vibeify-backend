@@ -15,6 +15,12 @@ import (
 )
 
 func PerformTask(task types.AddTaskType) {
+	defer func() {
+		if r := recover(); r != nil {
+			custom_log.Logger.Error("Task Failed: ", r)
+		}
+	}()
+
 	custom_log.Logger.Debug("Performing Task")
 	defer custom_log.Logger.Debug("Finished Performing Task")
 
