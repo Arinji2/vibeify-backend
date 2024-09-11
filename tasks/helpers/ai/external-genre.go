@@ -21,7 +21,7 @@ func GetExternalGenre(remainingTracks []types.SpotifyPlaylistItem, genres []stri
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	var pool = make(chan struct{}, 2)
+	var pool = make(chan struct{}, 10)
 
 	for _, track := range remainingTracks {
 		wg.Add(1)
