@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/Arinji2/vibeify-backend/api"
+	custom_log "github.com/Arinji2/vibeify-backend/logger"
 	ai_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/ai"
+	pocketbase_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/pocketbase"
 	spotify_helpers "github.com/Arinji2/vibeify-backend/tasks/helpers/spotify"
 	"github.com/Arinji2/vibeify-backend/types"
 )
@@ -141,8 +144,27 @@ func fetchSpotifyTracks(songsToIndex []types.PocketbaseSongIndexQueue) ([]types.
 	}
 
 	if err := json.Unmarshal(jsonMarshalled, &spotifyTracks); err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
+
+	pocketbaseClient := api.NewApiClient("https://db-listify.arinji.com")
+	adminToken := pocketbase_helpers.GetPocketbaseAdminToken()
+	var deletionWg sync.WaitGroup
+
+	for _, track := range spotifyTracks {
+		if track.Name == "" {
+			custom_log.Logger.Info(fmt.Sprintf("Song removed from index due to market not available %s", track.ID))
+			deletionWg.Add(1)
+			go func() {
+				deleteSongFromIndex(pocketbaseClient, adminToken, track.ID)
+				deletionWg.Done()
+			}()
+
+		}
+	}
+
+	deletionWg.Wait()
 
 	return spotifyTracks, nil
 }
